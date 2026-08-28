@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.litectl.proxy</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>@@cli_bin@@</string>
+    <string>--config-dir</string>
+    <string>@@config_dir@@</string>
+    <string>serve</string>
+    <string>--watch</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>@@config_dir@@</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ExitTimeOut</key>
+  <integer>15</integer>
+  <key>StandardOutPath</key>
+  <string>@@state_dir@@/proxy.log</string>
+  <key>StandardErrorPath</key>
+  <string>@@state_dir@@/proxy.err.log</string>
+</dict>
+</plist>

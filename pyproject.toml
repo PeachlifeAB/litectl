@@ -1,0 +1,134 @@
+[project]
+name = "litectl"
+version = "0.1.0"
+description = "Installs and maintains a local LiteLLM proxy configuration"
+readme = "README.md"
+authors = [{ name = "David Åberg", email = "git@davidaberg.me" }]
+requires-python = ">=3.12"
+dependencies = [
+  "litellm[proxy]>=1.70.0,<1.98.0",
+  "fastapi==0.115.12",
+  "sse-starlette==2.2.1",
+  "uvicorn>=0.29.0,<1.0",
+  "pyyaml>=6.0",
+  "ruamel-yaml>=0.18,<0.20",
+  "jsonschema>=4.21",
+  "watchfiles>=1.0,<2.0",
+]
+
+[project.scripts]
+litectl = "litectl:main"
+
+[build-system]
+requires = ["uv_build>=0.12.7,<0.13"]
+build-backend = "uv_build"
+
+[dependency-groups]
+test = ["pytest~=9.0", "mutmut~=3.3.0"]
+dev = [
+  "mypy~=2.3.1",
+  "poethepoet~=0.48.0",
+  "pre-commit>=4.6.2",
+  "ruff~=0.16.4",
+  "types-jsonschema",
+  "types-PyYAML",
+  "vulture~=2.14",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = [
+  "E501",
+  "E402", # qlty's ruff enables it; keep both tools agreeing
+  "TID251",
+  "C901",
+  "PLR0915",
+  "PLR0912",
+  "PLR0913",
+  "PLR2004", # Sonar S109: flag magic values (numbers, raw strings in domain)
+  "S105", # Hardcoded password/secret string literals
+  "S108", # Sonar S1075: hardcoded temp paths/URIs
+  "F401",
+  "F841",
+  "ARG",
+  "I",
+  "B",
+  "UP",
+]
+
+[tool.ruff.lint.pylint]
+max-statements = 25
+max-branches = 8
+max-args = 5
+# Disallow string literals ('str') from being exempt in PLR2004 comparisons
+allow-magic-value-types = ["bytes"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"subprocess".msg = "I/O belongs in infrastructure/ or api/, never in domain/"
+"sys.stdin".msg = "stdin parsing belongs in api/, never in domain/"
+"argparse".msg = "CLI argument parsing belongs in api/, never in domain/"
+# urllib.parse is pure string parsing and belongs in domain; only the
+# I/O submodules are boundary concerns.
+"urllib.request".msg = "Raw URI calls belong in infrastructure/ or api/"
+"urllib.error".msg = "Raw URI calls belong in infrastructure/ or api/"
+"requests".msg = "HTTP requests belong in infrastructure/ or api/"
+
+[tool.ruff.lint.per-file-ignores]
+"src/litectl/modules/*/api/*" = ["TID251", "PLR2004"]
+"src/litectl/modules/*/infrastructure/*" = ["TID251", "PLR2004"]
+"src/litectl/app/*" = ["TID251", "PLR2004"]
+"src/litectl/modules/catalog/cli.py" = ["TID251", "PLR2004"]
+"src/litectl/serve.py" = ["TID251", "PLR2004"]
+"tests/**/*.py" = ["TID251", "PLR0915", "PLR0912", "PLR2004", "ARG"]
+"tools/*" = ["TID251", "PLR2004"]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["src"]
+
+[tool.mypy]
+explicit_package_bases = true
+mypy_path = "src"
+strict = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]
+
+[tool.poe.tasks]
+deadcode = { cmd = "vulture", help = "scan for dead code" }
+quality = { cmd = "qlty check --all --no-fix --no-progress", help = "run qlty.sh check only" }
+quality-fix = { cmd = "qlty check --all --fix --no-progress", help = "run qlty.sh and auto-fix" }
+lint = { cmd = "ruff check src tests", help = "lint sources" }
+lint-fix = { cmd = "ruff check --fix src tests", help = "lint and auto-fix" }
+fmt = { cmd = "ruff format src tests", help = "format sources" }
+fmt-check = { cmd = "ruff format --check src tests", help = "verify formatting" }
+typecheck = { cmd = "mypy src tests", help = "typecheck" }
+test = { cmd = "pytest tests", help = "run tests" }
+mutate = { cmd = "mutmut run --max-children 1", help = "run mutation tests serially" }
+build = { cmd = "uv build", help = "build distributable wheel" }
+
+# Composed workflows (zero duplication)
+fix = { sequence = ["quality-fix", "fmt", "lint-fix"], help = "format and fix" }
+commit-check = { sequence = [
+  "quality",
+  "lint",
+  "fmt-check",
+], help = "fast syntax & format validation for pre-commit" }
+validate = { sequence = [
+  "quality",
+  "commit-check",
+  "deadcode",
+  "typecheck",
+  "test",
+], help = "run all gates before pushing to remote" }
+validate-all = { sequence = ["validate"], help = "alias for validate (pre-push gate)" }

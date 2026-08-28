@@ -1,0 +1,21 @@
+# Static, not discovered: no API key is needed at generate time and the
+# named groups cannot vanish when Cerebras rotates its catalog. The
+# wildcard still routes any other model on demand.
+model_list:
+  - model_name: cerebras-gpt-oss-120b
+    litellm_params:
+      model: openai/gpt-oss-120b
+      api_base: os.environ/CEREBRAS_API_BASE
+      api_key: os.environ/CEREBRAS_API_KEY
+
+  - model_name: cerebras-gemma-4-31b
+    litellm_params:
+      model: openai/gemma-4-31b
+      api_base: os.environ/CEREBRAS_API_BASE
+      api_key: os.environ/CEREBRAS_API_KEY
+
+  - model_name: "cerebras/*"
+    litellm_params:
+      model: "openai/*"
+      api_base: os.environ/CEREBRAS_API_BASE
+      api_key: os.environ/CEREBRAS_API_KEY

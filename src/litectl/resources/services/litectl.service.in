@@ -1,0 +1,14 @@
+[Unit]
+Description=LiteLLM proxy managed by litectl
+
+[Service]
+Type=simple
+ExecStart="@@cli_bin@@" --config-dir "@@config_dir@@" serve --watch
+WorkingDirectory=@@config_dir@@
+Restart=on-failure
+TimeoutStopSec=15s
+StandardOutput=append:@@state_dir@@/proxy.log
+StandardError=append:@@state_dir@@/proxy.err.log
+
+[Install]
+WantedBy=default.target

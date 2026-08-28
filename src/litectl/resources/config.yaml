@@ -1,0 +1,36 @@
+---
+include:
+  - ./providers/cerebras/models.yaml
+  - ./providers/ds4/models.yaml
+  - ./providers/llama-cpp/models.yaml
+  - ./providers/lmstudio/models.yaml
+  - ./providers/omlx/models.yaml
+  - ./providers/ollama/models.yaml
+
+environment_variables:
+  LITELLM_MASTER_KEY: "@@master_key@@"
+  LITELLM_PORT: "@@port@@"
+  OMLX_API_BASE: "@@omlx_base@@"
+  OMLX_API_KEY: "@@omlx_key@@"
+  CEREBRAS_API_BASE: "@@cerebras_base@@"
+  CEREBRAS_API_KEY: "@@cerebras_key@@"
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+router_settings:
+  routing_strategy: usage-based-routing
+  enable_pre_call_checks: true
+  num_retries: 1
+  timeout: 600
+  allowed_fails: 1
+  cooldown_time: 20
+
+  model_group_alias:
+    default_cloud: &cloud cerebras-gpt-oss-120b
+    default: *cloud
+
+litellm_settings:
+  drop_params: true
+
+model_list: []

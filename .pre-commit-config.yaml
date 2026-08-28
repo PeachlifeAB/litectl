@@ -1,0 +1,36 @@
+repos:
+  # Fast hygiene checks on every commit.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: detect-private-key
+
+  # Ruff via the project's own pinned version, so lint never diverges
+  # between the hook and `poe lint`.
+  - repo: local
+    hooks:
+      - id: commit-check
+        name: fast lint & format (poe commit-check)
+        entry: uv run poe commit-check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+  # Full gates run only when pushing: tests, types, dead code, quality.
+  - repo: local
+    hooks:
+      - id: validate
+        name: all gates (poe validate)
+        entry: uv run poe validate
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
