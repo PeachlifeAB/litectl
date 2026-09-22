@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "litectl",
+  "project_id": "64c39c38-b22d-46c5-aac6-20d3cc741699"
+}

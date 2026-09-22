@@ -1,21 +1,34 @@
 {
-  "version": 1,
   "hooks": {
-    "postToolUse": [
-      {
-        "matcher": "Read|Grep|Glob|Search|Shell",
-        "command": "node \"/Users/davidaberg/Developer/owner/PeachlifeAB/litectl/.cursor/hooks/graft-hooks.cjs\" cursor-post-tool"
-      }
-    ],
     "afterMCPExecution": [
       {
         "command": "node \"/Users/davidaberg/Developer/owner/PeachlifeAB/litectl/.cursor/hooks/graft-hooks.cjs\" cursor-mcp"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "node \"/Users/davidaberg/Developer/owner/PeachlifeAB/litectl/.cursor/hooks/graft-hooks.cjs\" cursor-post-tool",
+        "matcher": "Read|Grep|Glob|Search|Shell"
+      },
+      {
+        "command": "bd cursor-hook postToolUse"
+      }
+    ],
+    "preCompact": [
+      {
+        "command": "bd cursor-hook preCompact"
       }
     ],
     "sessionEnd": [
       {
         "command": "node \"/Users/davidaberg/Developer/owner/PeachlifeAB/litectl/.cursor/hooks/graft-hooks.cjs\" cursor-session-end"
       }
+    ],
+    "sessionStart": [
+      {
+        "command": "bd cursor-hook sessionStart"
+      }
     ]
-  }
+  },
+  "version": 1
 }
