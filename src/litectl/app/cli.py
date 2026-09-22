@@ -13,7 +13,7 @@ from litectl.app import teardown
 from litectl.app.paths import config_dir, state_dir
 from litectl.modules.catalog import cli as catalog
 from litectl.modules.catalog import list_models
-from litectl.modules.catalog.infrastructure.config import PROVIDER_SPECS
+from litectl.modules.catalog.cli import PROVIDER_SPECS as CATALOG_PROVIDER_SPECS
 from litectl.modules.workspace.api.resolve import read_settings
 from litectl.modules.workspace.infrastructure.service import (
     ServiceContext,
@@ -25,7 +25,7 @@ from litectl.modules.workspace.infrastructure.service import (
 )
 from litectl.serve import main as serve
 
-PROVIDERS = ("all", *PROVIDER_SPECS)
+PROVIDERS = ("all", *CATALOG_PROVIDER_SPECS)
 DEFAULT_SHUTDOWN_GRACE_SECONDS = 10.0
 DEFAULT_DEBOUNCE_MILLISECONDS = 500
 
