@@ -26,9 +26,11 @@ build-backend = "uv_build"
 [dependency-groups]
 test = ["pytest~=9.0", "mutmut~=3.3.0"]
 dev = [
+  "coverage==7.16.1",
   "mypy~=2.3.1",
   "poethepoet~=0.48.0",
   "pre-commit>=4.6.2",
+  "radon==6.0.1",
   "ruff~=0.16.4",
   "types-jsonschema",
   "types-PyYAML",
@@ -57,6 +59,11 @@ extend-select = [
   "B",
   "UP",
 ]
+
+[tool.ruff.lint.isort]
+# Project-owned gate checkers live in tests/ and are first-party, not vendor
+# code that happens to be importable.
+known-first-party = ["litectl", "coverage_gate"]
 
 [tool.ruff.lint.pylint]
 max-statements = 25
@@ -87,17 +94,163 @@ max-complexity = 8
 "tests/**/*.py" = ["TID251", "PLR0915", "PLR0912", "PLR2004", "ARG"]
 "tools/*" = ["TID251", "PLR2004"]
 
+# Architecture enforcement for the modulithic hexagonal DDD profile.
+# Run with the isolated tool, never `uv run`: import-linter >= 2.7 requires
+# rich >= 14.2.0 and litellm pins rich == 13.7.1, so it cannot live in the dev
+# group. See tests/TESTING.md.
+#   uv tool run --from import-linter==2.15 lint-imports --config pyproject.toml
+#
+# Layers are wrapped in parentheses to mark them optional: a layers contract
+# errors out when a named layer is absent from any container, and workspace
+# legitimately has no application/ layer. Optional layers still enforce
+# direction for the layers that do exist (probed against 2.15).
+[tool.importlinter]
+root_package = "litectl"
+include_external_packages = true
+exclude_type_checking_imports = false
+
+[[tool.importlinter.contracts]]
+id = "module-layers"
+name = "Each module points inward"
+type = "layers"
+containers = ["litectl.modules.*"]
+# api and infrastructure are both outer adapters and may collaborate within a
+# module (api/resolve.py drives infrastructure/probe.py). They are listed as one
+# layer rather than independent peers so the contract checks inward direction,
+# which is the profile's rule, and not adapter-to-adapter calls, which it allows.
+layers = ["(api) : (infrastructure)", "(application)", "domain"]
+exhaustive = true
+exhaustive_ignores = ["module", "cli", "pipeline", "list_models"]
+
+[[tool.importlinter.contracts]]
+id = "bounded-contexts-independent"
+name = "Bounded contexts do not import each other"
+type = "independence"
+modules = ["litectl.modules.*"]
+
+[[tool.importlinter.contracts]]
+id = "modules-not-app"
+name = "Modules do not import global composition"
+type = "forbidden"
+source_modules = ["litectl.modules"]
+forbidden_modules = ["litectl.app", "litectl.serve"]
+# Direct edges only: `litectl/__init__.py` imports app.cli to expose main(), so
+# every module reaching any litectl.* name has an indirect path back to app.
+# That chain is the package root re-exporting an entry point, not a module
+# depending on global composition.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+id = "pure-domain"
+name = "Domain performs no I/O and depends on no framework"
+type = "forbidden"
+source_modules = [
+  "litectl.modules.catalog.domain",
+  "litectl.modules.workspace.domain",
+]
+# Only top-level packages are valid here: import-linter rejects subpackages of
+# external packages. urllib is therefore absent from this list on purpose --
+# domain/urls.py imports urllib.parse, which is pure string parsing and belongs
+# in the domain. ruff TID251 bans the I/O submodules (urllib.request,
+# urllib.error) by name, so that boundary stays enforced; the two checks are
+# complementary, not redundant.
+forbidden_modules = [
+  "subprocess",
+  "socket",
+  "shutil",
+  "fastapi",
+  "uvicorn",
+  "litellm",
+  "yaml",
+  "ruamel",
+  "jsonschema",
+  "watchfiles",
+]
+
+# Global composition uses public module roots.
+#
+# This contract FAILS today and is selected anyway: policy forbids disabling or
+# narrowing a required gate to match current code
+# (`disabled_required_gate: fail`, `scope_reduction_to_match_checker: forbidden`).
+# The failure is the finding, recorded in tests/TESTING.md: neither module
+# declares an index.py/module.py public root, and src/app plus src/serve.py
+# import module internals directly. Resolving it means adding those roots and
+# rewriting the imports -- a product change that needs approval.
+[[tool.importlinter.contracts]]
+id = "app-uses-public-roots"
+name = "Global composition uses public module roots"
+type = "forbidden"
+source_modules = ["litectl.app", "litectl.serve"]
+forbidden_modules = [
+  "litectl.modules.catalog.domain",
+  "litectl.modules.catalog.application",
+  "litectl.modules.catalog.infrastructure",
+  "litectl.modules.workspace.domain",
+  "litectl.modules.workspace.application",
+  "litectl.modules.workspace.infrastructure",
+]
+allow_indirect_imports = true
+
+# Mutation testing. First adoption scope is all first-party production
+# (`mutation.first_adoption_scope: all_first_party_production`), so nothing is
+# narrowed to changed files yet.
+#
+# Policy requires mutants generated independently of line coverage, so that
+# uncovered code cannot silently produce zero mutants and report success over
+# the code least tested (`zero_mutants_with_eligible_source: unverified`).
+# mutmut 3.3.1 has no coverage filter to disable: its Config exposes only
+# also_copy, do_not_mutate, max_stack_depth, debug, paths_to_mutate and
+# tests_dir (verified in the installed __main__.py), and it mutates
+# independently of coverage by default. An older `mutate_only_covered_lines`
+# key would be silently ignored here, so it is deliberately absent.
+#
+# `mutmut run` exits 0 even with survivors, so the task parses result rows
+# rather than trusting the exit status.
+#
+# also_copy carries the files the build backend needs inside mutants/. Without
+# README.md the wheel build fails there, no test can run, and every mutant
+# records no outcome while `mutmut run` still exits 0 -- 2640 mutants, none
+# tested. uv.lock and .python-version keep the mutant environment identical to
+# the real one.
+[tool.mutmut]
+paths_to_mutate = ["src/litectl/"]
+tests_dir = ["tests/"]
+also_copy = ["README.md", "uv.lock", ".python-version", "install.sh"]
+
+[tool.coverage.run]
+source = ["litectl"]
+branch = true
+# Policy requires unimported first-party files in the denominator, so an
+# untested module cannot vanish from the report by never being imported.
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = false
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "@abstractmethod",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
 [tool.vulture]
 min_confidence = 80
 paths = ["src"]
 
 [tool.mypy]
 explicit_package_bases = true
-mypy_path = "src"
+# tests/ joins the path for the project-owned gate checkers living there;
+# mypy does not read pytest's pythonpath.
+mypy_path = "src:tests"
 strict = true
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+# tests/ is on the path so the project-owned gate checkers there
+# (coverage_gate.py) are importable by their own tests.
+pythonpath = ["src", "tests"]
 testpaths = ["tests"]
 
 [tool.bandit]
@@ -105,6 +258,20 @@ exclude_dirs = ["tests"]
 skips = ["B101"]
 
 [tool.poe.tasks]
+# QA tooling that cannot share the product's locked environment lives in its own
+# isolated install. Setup provisions it; checks only execute it. Release numbers
+# belong here, never in a recurring check command.
+qa-setup = { shell = """
+uv sync --group dev --group test
+uv tool install --force 'import-linter==2.15'
+if command -v npm >/dev/null 2>&1; then
+  npm --prefix .qa ci --include=dev
+else
+  echo 'qa-setup: npm not on PATH; .qa/ harness not refreshed' >&2
+  exit 1
+fi
+""", help = "provision QA tooling (import-linter isolated: needs rich>=14.2.0, litellm pins 13.7.1)" }
+
 deadcode = { cmd = "vulture", help = "scan for dead code" }
 quality = { cmd = "qlty check --all --no-fix --no-progress", help = "run qlty.sh check only" }
 quality-fix = { cmd = "qlty check --all --fix --no-progress", help = "run qlty.sh and auto-fix" }
@@ -113,7 +280,27 @@ lint-fix = { cmd = "ruff check --fix src tests", help = "lint and auto-fix" }
 fmt = { cmd = "ruff format src tests", help = "format sources" }
 fmt-check = { cmd = "ruff format --check src tests", help = "verify formatting" }
 typecheck = { cmd = "mypy src tests", help = "typecheck" }
+# import-linter cannot join the dev group: >=2.7 needs rich>=14.2.0 and litellm
+# pins rich==13.7.1, so it lives in a separately locked uv tool environment.
+# `qa-setup` installs the pinned release; this check only executes it, and
+# carries no release number of its own.
+arch = { cmd = "lint-imports --config pyproject.toml --no-logo", help = "architecture contracts", env = { PYTHONPATH = "src", PATH = "${HOME}/.local/bin:${PATH}" } }
 test = { cmd = "pytest tests", help = "run tests" }
+coverage-run = { cmd = "coverage run -m pytest tests -q", help = "run tests under coverage" }
+coverage-json = { cmd = "coverage json -o coverage.json -q", help = "emit coverage JSON" }
+coverage-gate = { cmd = "python tests/coverage_gate.py coverage.json", help = "enforce line and branch floors separately" }
+coverage = { sequence = [
+  "coverage-run",
+  "coverage-json",
+  "coverage-gate",
+], help = "measure coverage and enforce both floors" }
+# Policy sets CRAP exclusive_max 13; the tool's own default is 30, so the
+# threshold is passed explicitly and never inherited. Reads coverage.json, so
+# `poe coverage` must run first. Uses the venv's radon via PATH.
+crap = { cmd = "./.qa/node_modules/.bin/audit-harness crap --root . --target src --threshold-prod 13 --threshold-avg 10 --json", help = "CRAP per-function gate", env = { PATH = "${POE_ROOT}/.venv/bin:${PATH}" } }
+# Project-owned: the harness conform runner validates agent-tooling SKILL.md
+# files and reaches none of litectl's declared artifacts. See tests/TESTING.md.
+conformance = { cmd = "python tests/conformance_gate.py", help = "validate declared artifacts against the LiteLLM schema" }
 mutate = { cmd = "mutmut run --max-children 1", help = "run mutation tests serially" }
 build = { cmd = "uv build", help = "build distributable wheel" }
 
@@ -129,6 +316,8 @@ validate = { sequence = [
   "commit-check",
   "deadcode",
   "typecheck",
+  "arch",
   "test",
+  "coverage",
 ], help = "run all gates before pushing to remote" }
 validate-all = { sequence = ["validate"], help = "alias for validate (pre-push gate)" }

@@ -1,0 +1,9 @@
+version: 1
+tier: T1
+rationale: >-
+  Packaged Python application. pyproject.toml declares [project] with a
+  dependency manifest, the uv_build backend, and the litectl console entry
+  point; the wheel ships src/litectl plus its runtime resources. First-party
+  production is src/litectl/**; .claude, .agents, .pi, .gdog/cloned and .review
+  are agent tooling or vendored references and are excluded from classification.
+policy: tests/qa-policy.yml

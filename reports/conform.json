@@ -1,0 +1,227 @@
+[
+  {
+    "gate_id": "audit-harness:local:conform-mcp",
+    "result": "PASS",
+    "policy_hash": "sha256:1c323e96932d14ffce0f5027a5ffe434936e282f615b001109e3d2a19479dc00",
+    "input_hash": "sha256:f6f5e08e9cc6c48e322df7cedc76693e750033ac612fccdd5099ba81a5cf13bd",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "mcp",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/mcp-config.schema.json",
+      "artifact_path": ".mcp.json"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:002e16ab3a4ccfba4d72cb67b283f3b69c68bf21cb318171fb41ef12711bce67",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".agents/skills/modulithic-hexagonal-ddd/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:bc338fab9fd85c2531f8e06a7f72d835b67428f29b4a5afe8b26f2814e877cf4",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".claude/skills/graft/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:83e0d2d4c47674e312fc9d29297d91e5c018a5507e6961829ee623600e2cf2ff",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".claude/skills/openspec-apply-change/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:85c8764715a18fbd11d16ca04bd9e15d8644bf5e4203176ad34eee192b546472",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".claude/skills/openspec-archive-change/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:79249f798ad0d69bf95f08f3c7a29d44d982e4c1645f1a12a21dfcd488f4ba0d",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".claude/skills/openspec-explore/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:a666b2381a7d5e982d8e32183484020f518da2b795c0f387c5ff4b3cb47be0fd",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".claude/skills/openspec-propose/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:420e5815eee33ebd642b9d038f0a5307b176923a5c1a837c4873e51de085aae3",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".claude/skills/openspec-sync-specs/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:82a51ed50b10ac3be479d7abc4a99fe3685ee7794078d7d8ea7bfc90ae42c2d9",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".claude/skills/openspec-update-change/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:8ed9b0e94081b976873363f038c45b2cfcfbe59579905bceab0a300d33e902eb",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".pi/skills/openspec-apply-change/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:85c8764715a18fbd11d16ca04bd9e15d8644bf5e4203176ad34eee192b546472",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".pi/skills/openspec-archive-change/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:77d23c71667d0c6e7c727cda28c59372557154d042a45a5e7c034d1a109992a7",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".pi/skills/openspec-explore/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:0eaf28cce7062f403cf2df805d7688201687595dc4c4a9e6f80750fd44bce9b1",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".pi/skills/openspec-propose/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:420e5815eee33ebd642b9d038f0a5307b176923a5c1a837c4873e51de085aae3",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".pi/skills/openspec-sync-specs/SKILL.md"
+    }
+  },
+  {
+    "gate_id": "audit-harness:local:conform-skillmd",
+    "result": "PASS",
+    "policy_hash": "sha256:027621eb7f291885310420f3aaea61314f29bdf82c0524c907da5a50345ef752",
+    "input_hash": "sha256:4ed88b90a1a18c2c9afc72f2bf233f87f04b961bc4b3eb79caaa33f3495fd30b",
+    "timestamp": "2026-09-17T19:30:45Z",
+    "runner": "audit-harness@1.4.0",
+    "commit_sha": "33370ee",
+    "metadata": {
+      "kind": "skillmd",
+      "validator": "audit-harness-embedded-subset",
+      "schema_id": "https://evals.intentsolutions.io/conform/v1/skillmd-frontmatter.schema.json",
+      "artifact_path": ".pi/skills/openspec-update-change/SKILL.md"
+    }
+  }
+]

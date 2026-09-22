@@ -1,0 +1,674 @@
+# Skill-owned setup recipe.
+#
+# This is NOT the configuration grammar of intent-audit-harness.
+# setup-harness materializes these requirements into native configuration and tasks.
+# Only harness_overrides is rendered into the repository's .audit-harness.yml.
+#
+# routing selects gate instances and measurement scope; gates owns their guarantees.
+# Selected gates are blocking. Thresholds retain stronger existing settings.
+# See ROUTING.md for assessment, grounding, adoption and completion boundaries.
+# Command names and physical paths are bound from the target repository during setup.
+
+format: setup-harness-policy/v1
+
+# Local policy: ISTQB/ITIL/IEC do not prescribe these tiers or numeric bands.
+routing:
+  version: 1
+  selection: baseline_union_affected_union_escalation
+  schema: routing.schema.json
+  precedence: routing_scope_then_gate_thresholds
+  existing_stronger_checks: retain_until_approved_verified_migration
+  missing_or_ambiguous: full_applicable
+  grounding: independent_of_score
+  mechanical_exception: explicit_nonsemantic_edit_only
+  assessment:
+    likelihood:
+      "1": rare_familiar_isolated_change_with_current_evidence
+      "2": unlikely_limited_coupling_and_relevant_evidence
+      "3": possible_multiple_interactions_or_partial_evidence
+      "4": likely_complex_coupled_or_unfamiliar_change
+      "5": almost_certain_known_failure_or_uncontrolled_change
+    consequence:
+      "1": insignificant_local_cosmetic_reversible
+      "2": minor_bounded_disruption_without_durable_data_loss
+      "3": moderate_affected_workflow_or_user_group_needs_recovery
+      "4": major_service_security_or_data_impact_with_costly_recovery
+      "5": catastrophic_widespread_irreversible_or_safety_impact
+    formula: likelihood_times_consequence
+    checkpoints: [entry, impact_change, final_verification]
+    retain: highest_score_and_highest_consequence
+    review_subject: reviewed_change_not_review_side_effects
+    change_type: separate_authorization_classification
+  bands:
+    - {min: 1, max: 4, name: low, scope: focused, approval: existing}
+    - {min: 5, max: 9, name: moderate, scope: affected, approval: existing}
+    - {min: 10, max: 16, name: high, scope: full, approval: existing}
+    - {min: 17, max: 25, name: critical, scope: full, approval: required}
+  consequence_override:
+    value: 5
+    scope: full
+    additional_approval: false
+  approval_reuse: same_scope_risks_and_authorized_actions
+  baseline: [integrity, escape_scan, conformance_artifacts, repository_scan]
+  tiers:
+    T1:
+      description: application_or_package_with_build_or_dependency_manifest
+      baseline: [configuration, static, tests, architecture, testing_depth]
+      architecture: modulithic_hexagonal_ddd
+    T2:
+      description: executable_project_without_application_manifest
+      baseline: [configuration, static, tests, architecture]
+      architecture: native_boundaries_unless_domain_or_module_boundaries
+    T3:
+      description: instructions_docs_or_config_without_shipped_application
+      baseline: [documentation, configuration]
+      architecture: defer_only_when_no_application_architecture_is_affected
+  affected:
+    prose: [documentation]
+    operational_instructions: [documentation, configuration, conformance_artifacts]
+    configuration: [configuration, conformance_artifacts]
+    production: [static, tests, coverage, architecture, mutation, crap, duplication]
+    tests: [static, tests, coverage, mutation, test_bias]
+    dependencies: [configuration, security, repository_scan, tests, install_smoke]
+    packaging: [configuration, tests, install_smoke]
+    ci_or_gates: [configuration, integrity, tests, conformance_artifacts]
+    acceptance: [documentation, gherkin, tests]
+    generators: [scaffold_output, tests, install_smoke]
+  scopes:
+    focused: changed_units_and_proven_affected_consumers
+    affected: complete_affected_modules_and_consumer_suites
+    full: every_applicable_repository_gate_and_its_declared_scope
+  cadence:
+    entry: baseline_and_same_scope_regression_before_edits
+    slice: selected_changed_and_affected_checks_at_first_runnable_point
+    integration: selected_scope_including_interacting_consumers
+    closure: complete_selected_gate_set_on_final_snapshot
+    pre_commit: integrity_and_staged_escape_scan
+    pre_push: selected_set_for_each_actual_target_revision
+    ci: same_selected_set_and_verified_change_range
+    initial_adoption: full_applicable
+  evidence:
+    selected: gate_id_scope_reason_command_threshold_snapshot_result
+    not_applicable: proven_absent_subject_with_reason
+    not_selected: impact_evidence_and_routing_reason_not_a_pass
+    reuse: unchanged_inputs_scope_policy_tools_and_environment
+    unresolved: blocks_verified_closure
+
+harness_overrides:
+  disable: false
+  # `audit-harness@1.4.0 classify` reports kind `skill` from signal
+  # "SKILL.md present". Every match is agent tooling or a vendored reference,
+  # never a first-party shipped artifact:
+  #   .claude/skills/*/SKILL.md   .agents/skills/*/SKILL.md
+  #   .pi/skills/*/SKILL.md       .gdog/cloned/litellm/**/SKILL.md
+  # `git ls-files | grep -i skill` is empty: litectl ships no skill.
+  # Root cause is classifier-side, not repository-side: scripts/classify.py:148
+  # `shallow_glob` skips node_modules/.git/.venv/dist/build/fixtures/tests/
+  # test/__tests__/examples but not dotted agent-tooling directories, and those
+  # files sit at depth 3 within its max_depth=3 walk.
+  # ROUTING.md classifies first-party artifacts, excluding vendored references
+  # and caches, so `skill` is pinned off with the evidence above.
+  # Reviewed 2026-09-17. Re-check when the harness release changes.
+  classify_pins:
+    - kind: skill
+      applicable: false
+      reason: >-
+        No first-party SKILL.md; all matches are agent tooling or the vendored
+        .gdog/cloned/litellm reference checkout. Zero tracked by git.
+  advisory: []
+  disable_gates: []
+
+execution:
+  existing_task_runner: required
+  required_task: check
+  project_owned_tooling: required
+  exact_tool_versions: required
+  locked_install: required
+  automatic_repair: forbidden
+  automatic_repin: forbidden
+  missing_tool_download_during_checks: forbidden
+  setup_time_provisioning: required
+  dependency_currency: latest_stable_reviewed_at_setup_and_maintenance
+  existing_lock_as_currency_evidence: forbidden
+  stale_example_version_as_install_default: forbidden
+  silent_dependency_downgrade: forbidden
+  older_release_exception: explicit_owner_expiry_and_upgrade_trigger
+  dependency_security_review: direct_transitive_tools_and_runtimes
+  automated_update_proposals: configure_within_authorized_scope
+  disabled_required_gate: fail
+  advisory_required_gate: fail
+  active_kill_switch: fail
+  missing_or_stale_report: fail
+  unexpected_empty_scope: fail
+  unresolved_required_finding: fail
+  full_logs: required
+  actual_exit_status: required
+  finite_execution_timeouts: required
+
+inventory:
+  source_of_truth:
+    - manifests
+    - filesystem
+    - declared_artifact_contents
+  production_scope: all_first_party_production
+  include:
+    - every_code_bearing_workspace_member
+    - generators
+    - command_entry_points
+    - bootstrap
+    - adapters
+    - composition
+    - public_roots
+    - unimported_source
+  separate_generated_output_tests: required
+  compare_checker_inventory_to_source_inventory: required
+  new_unmapped_source: fail
+  new_unmapped_workspace_member: fail
+  # Validate purpose using the language-role inventory, not declaration count.
+  # Packaging markers, re-exports and executable entry statements are legitimate
+  # roles. Reject unexplained no-ops and unreachable source; do not exempt
+  # meaningful behavior from its tests or inventory.
+  symbolless_source: validate_declared_language_role
+  unreachable_source: fail
+  declared_entry_points_exempt_from_reachability: required
+  missing_namespace_package_contents: fail
+  unexpected_zero_source_count: fail
+
+gates:
+  # The gate catalog must remain available; routing selects executions.
+  # A missing selected runner is an unenforced requirement, not a routing skip.
+  classification:
+    subject: repository_under_setup
+    resolve_gate_set_from_detected_classifications: required
+    prose_judgement_as_substitute_for_the_registry: forbidden
+    unresolved_classification: fail
+
+  conformance_artifacts:
+    subject: repository_declared_artifacts
+    content_addressed_schema_validation: required
+    shipped_schemas_preferred_over_hand_written: required
+    unvalidated_declared_artifact: fail
+    # A gate runner may report a violation while exiting zero, because its
+    # default enforcement is advisory. Bind the gate to the result rows and to
+    # the runner's blocking mode, never to the exit code alone, or the wiring
+    # reports success on every finding it was installed to catch.
+    result_read_from: emitted_gate_rows
+    exit_code_alone_as_verdict: forbidden
+    blocking_mode_required_once_promoted: required
+
+  testing_depth:
+    subject: declared_test_pyramid_layers
+    per_layer_coverage_presence: reported
+    absent_declared_layer: fail
+
+  repository_scan:
+    scope:
+      - secrets
+      - dependency_vulnerabilities
+      - static_security
+      - dependency_inventory
+      - documentation_and_links
+    unresolved_actionable_findings_max: 0
+    advisory_result_as_pass: forbidden
+
+  integrity:
+    pin_verification: required
+    pin_inventory_completeness: required
+    detect_new_policy_files: required
+    recipe_and_effective_config_agree: required
+    missing_manifest: fail
+    changed_pinned_bytes: fail
+
+  escape_scan:
+    pre_commit_scope: staged_changes
+    pre_push_scope: actual_push_changes
+    ci_scope: verified_base_to_target
+    challenge: fail
+    refuse: fail
+    unresolved_range: fail
+
+  configuration:
+    native_schema_or_grammar_validation: required
+    unknown_settings: fail
+    unsupported_settings: fail
+    stale_competing_configuration: fail
+    missing_required_gate_binding: fail
+
+  static:
+    scope:
+      - production
+      - tests
+      - executable_qa_tooling
+    format_check: required
+    lint: required
+    applicable_type_checks: required
+    source_rewriting: forbidden
+
+  security:
+    scope:
+      - repository_content
+      - declared_dependencies
+      - shipped_artifacts
+    secrets: required
+    dependency_vulnerabilities: required
+    applicable_static_security_analysis: required
+    unresolved_actionable_findings_max: 0
+    silent_suppressions: forbidden
+    false_positive_resolution: recorded_evidence
+    credential_probes: synthetic_only
+
+  tests:
+    suites: every_required_native_suite
+    failures_max: 0
+    unexpected_zero_collection: fail
+    assertion_free_success: fail
+    external_state: isolated
+    coverage_only_assertions: forbidden
+
+  coverage:
+    scope: routed_production_scope
+    full_scope: all_first_party_production
+    line_percent_min: 90
+    branch_percent_min: 85
+    enforce_metrics_separately: true
+    include_unimported_files: true
+    denominator: executable_statements_and_branches
+    missing_source_in_report: fail
+    unsupported_required_metric: blocked
+    combined_percentage_as_substitute: forbidden
+    rounding_before_comparison: forbidden
+
+  architecture:
+    contract: supplied_or_repository_declared
+    otherwise: native_visibility_and_acyclic_package_dependencies
+    full_contract_accounting: required
+    production_file_role_mapping: complete
+    discovery_gaps: fail
+    forbidden_dependencies: fail
+    import_cycles: fail
+    public_surface_checks: required
+    relative_path_bypasses: checked
+    alias_bypasses: checked
+    reexport_bypasses: checked
+    applicable_type_only_dependencies: checked
+    scope_reduction_to_match_checker: forbidden
+    permitted_edges_inferred_from_current_code: forbidden
+    mechanical_and_review_evidence: distinguished
+
+  mutation:
+    first_adoption_scope: all_first_party_production
+    subsequent_scope: changed_production_files_and_affected_production
+    comparison_base: merge_base_with_explicit_target
+    candidate: commit_or_complete_worktree_snapshot
+    unresolved_base: fail
+    rename_and_deletion_inventory: required
+    test_dependency_or_config_changes: resolve_affected_production
+    uncertain_impact: all_first_party_production
+    baseline: same_scope_at_comparison_base
+    debt_attribution: verified_mutant_identity_and_comparable_profile
+    baseline_debt: report_separately_without_automatic_exemption
+    run_at: [baseline, slice, integration, closure]
+    run_mode: clean
+    scope_by_trigger:
+      baseline: routed_production_scope_at_comparison_base
+      slice: changed_functions_and_affected_behavior
+      integration: routed_production_scope_with_consumers
+      closure: routed_production_scope_on_final_snapshot
+    full_scope: full_approved_scope
+    changed_functions_fallback: full_approved_scope
+    actionable_survivors_max: 0
+    unresolved_dispositions_max: 0
+    equivalent_mutants: reviewed_scope_bound_proof_required
+    out_of_contract_mutants: owner_decision_not_automatic_exemption
+    exclusions: explicit_approval_and_reported_inventory
+    platform_blocked: blocked
+    untested_mutants: fail
+    unresolved_mutation_errors: fail
+    unresolved_timeouts: fail
+    zero_mutants_with_eligible_source: unverified
+    no_affected_production: require_verified_impact_inventory
+    successful_placeholder: forbidden
+    evidence:
+      full_mutant_inventory: required
+      native_and_normalized_statuses: required
+      nonoverlapping_totals_reconcile: required
+      excluded_source_and_operators: reported
+      fingerprints:
+        - comparison_base_and_candidate
+        - source_tests_and_fixtures
+        - policy_and_effective_configuration
+        - dependency_locks_and_installed_tool_versions
+        - runtime_platform_and_relevant_environment
+      commands_logs_exit_codes_and_timestamps: required
+      stale_partial_or_missing_report: fail
+
+  crap:
+    definition: standard_crap
+    first_adoption_scope: all_production_functions_and_methods
+    subsequent_scope: new_or_modified_functions_and_methods
+    exclusive_max: 13
+    complexity: measured_cyclomatic_complexity
+    coverage: measured_function_fraction
+    coverage_denominator: executable_statements_or_documented_native_metric
+    compare_unrounded: true
+    missing_coverage: use_conservative_upper_bound
+    # The bound proves CRAP only; unavailable coverage stays unknown.
+    bound_verdict: distinguish_from_measured_coverage
+    independent_coverage_gate: retain_measurement_requirements
+    insufficient_upper_bound: unverified
+    unknown_complexity: unverified
+    skipped_parse_errors: forbidden
+    unexpected_empty_report: fail
+
+  duplication:
+    scope: production_and_tests
+    duplicate_percent_max: 5
+    substantial_clone_review_minimum_tokens: 80
+    exclusions_to_hide_violations: forbidden
+    shared_business_layer_as_workaround: forbidden
+    ownership_conflicts: report_and_keep_unresolved
+
+  test_bias:
+    scope: test_sources
+    analysis: required
+    unresolved_actionable_findings_max: 0
+    pattern_count_as_proof_of_test_quality: forbidden
+
+  gherkin:
+    subject: acceptance_features
+    syntax_validation: required
+    quality_analysis: required
+    unresolved_actionable_findings_max: 0
+    advisory_exit_as_proof_of_acceptance: forbidden
+
+  documentation:
+    subject: changed_instructions_and_documentation
+    markdown_validation: required
+    spelling_check: required
+    prose_check: required
+    link_check: required
+    unresolved_actionable_findings_max: 0
+
+  install_smoke:
+    artifact: actual_distribution_or_deployment_artifact
+    fresh_environment: required
+    declared_dependencies_only: true
+    installed_entry_point: required
+    source_tree_import_fallback: forbidden
+    library_import_instead_of_invented_cli: allowed
+    applicable_service_readiness:
+      measurement: bounded
+      deadline: measured_startup_plus_margin
+      margin_seconds: 8
+      readiness_signal: event_or_health_probe
+      fixed_sleep_as_readiness: forbidden
+      streamed_logs: required
+      shutdown_verification: required
+
+  scaffold_output:
+    subject: repositories_that_generate_projects_or_qa
+    installed_generator: required
+    supported_modes: all
+    fresh_project_generation: required
+    repeat_generation: required
+    preserve_existing_content: required
+    isolated_home_xdg_git_and_service_state: required
+    packaged_resources: required
+    portable_paths: required
+    locked_tool_install: required
+    generated_check_execution: required
+    generated_hook_failure_propagation: required
+    rendered_template_validation: required
+    fake_or_noop_required_gates: forbidden
+    multi_module_boundary_fixture: when_modular_architecture_is_emitted
+
+architecture_profiles:
+  # Applies whenever the supplied modulithic-hexagonal-ddd contract is in effect.
+  # These are role names, not filesystem globs or native checker options.
+  # Physical paths are resolved from the target language's packaging.
+  modulithic-hexagonal-ddd:
+    deployment: one_deployable_unit
+    module_ownership: one_bounded_context_per_module
+    unmapped_production_roles: fail
+    empty_directories_as_architecture: forbidden
+    speculative_abstractions: forbidden
+    all_rules_apply_together: true
+    # Every rule below states an outcome, not a check. A rule with no failing
+    # check is documentation: it is declared, believed, and violated silently.
+    # Each MUST name the check that rejects it and be proven green -> red ->
+    # green, or be reported as unenforced rather than counted as satisfied.
+    every_rule_has_a_failing_check: required
+    rules_without_a_check: report_as_unenforced
+    # Rules written against one module by name stop governing the moment a
+    # second module exists - exactly when they start mattering. Contracts MUST
+    # be expressed over the module container, not per-module literals.
+    module_scoped_rules_use_container_not_literals: required
+
+    allowed_dependencies:
+      domain:
+        - own_domain
+        - pure_computation_without_io_or_ambient_side_effects
+      application:
+        - own_application
+        - own_domain
+        - pure_orchestration_libraries
+      api:
+        - own_api
+        - own_application
+        - own_domain_for_pure_translation
+        - transport_libraries
+      infrastructure:
+        - own_infrastructure
+        - own_application
+        - own_domain
+        - adapter_libraries
+      module_composition:
+        - all_own_layers
+        - construction_and_runtime_libraries
+      public_root:
+        - own_factory_and_lifecycle_surface
+        - own_public_contracts
+        - own_exportable_composition_dependency_types
+      global_composition:
+        - own_global_composition
+        - module_public_roots
+        - runtime_libraries
+
+    boundaries:
+      sibling_module_imports: forbidden_including_public_roots
+      module_imports_of_global_composition: forbidden
+      ordinary_layer_imports_of_local_composition: forbidden
+      api_imports_of_infrastructure: forbidden
+      infrastructure_imports_of_api: forbidden
+      global_composition_deep_imports: forbidden
+      import_cycles: forbidden
+      synchronous_call_cycles: forbidden
+      composition_files_as_unchecked_exclusions: forbidden
+
+    domain:
+      invariants: enforced_by_owning_domain
+      errors: typed_and_domain_owned
+      io: forbidden
+      ambient_process_clock_config_environment_reads: forbidden
+      environmental_values: explicit_inputs
+      standard_library_allowance: pure_operations_only
+
+    application:
+      concrete_io: forbidden
+      effects: through_consumer_owned_application_ports
+      business_invariants: delegated_to_domain
+      commands: module_owned_orchestration
+      query_read_models: allowed_without_aggregate_reconstruction
+      transaction_coordination: own_module_only
+
+    api:
+      responsibilities:
+        - protocol_and_payload_shape
+        - application_command_or_query_mapping
+        - application_invocation
+        - protocol_result_mapping
+      transport_identity_extraction: allowed
+      business_authorization: application_or_domain
+      direct_domain_access: pure_translation_only
+
+    infrastructure:
+      responsibilities:
+        - implement_application_ports
+        - concrete_io
+        - private_persistence_mapping
+        - own_migrations
+      persistence_to_domain_mapping: required
+      orm_records_as_domain_entities: forbidden
+      storage_constraint_errors: mapped_to_own_error_contract
+
+    composition:
+      local_root: construction_without_business_policy
+      global_root: public_contract_composition_only
+      cross_module_bridges: global_integration_area
+      bridge_behaviour: translation_and_routing
+      presentation_only_aggregation: allowed
+      business_workflow_state: requires_owning_module
+
+    public_contracts:
+      external_entry: sole_module_public_root
+      allowed_exports:
+        - factory_and_lifecycle_api
+        - command_query_facade
+        - module_owned_contract_dtos
+        - versioned_integration_events
+        - stable_public_result_and_error_types
+        - framework_free_runtime_settings
+        - composition_time_consumer_ports_and_dependency_types
+      forbidden_leaks_including_nested_types:
+        - domain_entities
+        - internal_domain_events
+        - persistence_records
+        - internal_repositories_and_ports
+        - handlers_and_controllers
+        - framework_driver_orm_and_sdk_types
+      python_all_as_access_control: forbidden
+      # The public root is checked for direction - who may enter through it -
+      # far more often than for content. Both are required: a root that
+      # re-exports an internal type has widened the module's contract without
+      # anyone deciding to.
+      # Own-layer public contracts may be imported directly; implementation
+      # imports remain forbidden. Factory imports follow allowed_dependencies.
+      public_root_direct_layer_imports: approved_public_contracts_and_factory_surface_only
+      public_root_export_list: pinned_allow_list
+      export_list_growth: explicit_review
+
+    collaboration:
+      committed_facts: integration_events
+      immediate_information: consumer_port_to_supplier_public_query
+      foreign_information_reuse: owned_projection
+      synchronous_cross_module_mutation: forbidden
+      business_workflows: explicit_owning_module
+
+    events:
+      internal_domain_events: private
+      integration_contract_mapping: application_owned
+      integration_contracts: separate_and_versioned
+      publication: after_producer_commit
+      required_crash_durability: atomic_state_and_outbox_or_equivalent
+      commit_then_enqueue_as_atomic_outbox: forbidden
+      best_effort_loss_window: explicit_contract
+      delivery_ordering_staleness: declared
+      repeated_delivery: duplicate_safe_consumers
+      consumer_input: own_contract
+      consumer_transaction: own_module
+
+    persistence:
+      tables_schema_migrations_and_records: module_owned
+      indexes_views_and_stored_procedures: module_owned
+      foreign_table_reads_writes_and_joins: forbidden
+      cross_module_foreign_keys_and_triggers: forbidden
+      cross_module_write_transactions: forbidden
+      foreign_table_layout_as_public_contract: forbidden
+      shared_server_as_shared_ownership: forbidden
+      reporting_models: owned_and_fed_by_public_contracts
+
+    reuse:
+      global_shared_business_layer: forbidden
+      domain_entities_shared_between_contexts: forbidden
+      coincidental_implementation_similarity: keep_local
+      independent_business_capability: own_module
+      exchanged_information: contract_dto
+      external_capability: port_and_adapter
+      technical_facilities: composition_or_appropriate_ports
+
+    tests:
+      module_local_internal_access: allowed
+      cross_module_access: public_roots_only
+      # Decide where tests live while there is one module and the answer is
+      # cheap. Left open, "internal or cross-module?" is a stable ambiguity
+      # that nothing later resolves, and by then the import count decides it.
+      location_relative_to_module: declared_at_adoption
+      # A test tree outside the package may not be importable as a module at
+      # all, so a contract naming it can abort the whole run rather than fail.
+      # Verify the tree is addressable by the checker before writing the rule.
+      test_tree_addressable_by_checker: verify_before_writing_contract
+      invariant_and_io_evidence: required
+      public_type_surface_evidence: required
+      persistence_and_transaction_evidence: required
+      cross_module_failure_evidence: required
+
+enforcement_paths:
+  local_check: complete_policy_selected_gate_set
+  pre_commit:
+    - pin_verification
+    - staged_escape_scan
+  pre_push:
+    target: each_actual_non_deletion_pushed_revision
+    isolation: required
+    locked_install: required
+    checks: complete_policy_selected_gate_set
+    escape_scan: actual_push_changes
+    multiple_refs: handled
+    new_refs: whole_candidate_comparison
+    deletions: explicitly_handled
+    unresolved_history: fail
+  ci:
+    locked_install: required
+    checks: same_policy_selected_gate_set
+    escape_scan: verified_base_to_target
+    green_and_red_job_execution: required
+    required_check_protection: verify_and_report_separately
+
+pins:
+  include:
+    - tests/qa-policy.yml
+    - tests/TESTING.md
+    - .audit-harness.yml
+    - .harness-hash-extra-patterns
+    - actual_package_and_workspace_manifests
+    - actual_lockfiles_and_tool_version_declarations
+    - actual_task_definitions_and_adapters
+    - actual_hooks_and_ci_configuration
+    - actual_checker_configuration_and_extended_configs
+    - actual_custom_gate_implementations
+    - vendored_harness_distribution_when_used
+  entries_are: inventory_categories_to_resolve_to_actual_paths
+  extra_patterns_self_pinning: required
+  manifest_self_pinning: forbidden
+  expanded_inventory_verification: required
+
+gate_promotion:
+  # A false negative is a defect the detector misses. Advisory mode changes
+  # whether detected findings block execution, not whether misses are visible.
+  # Promotion limits false positives that halt correct builds; named-defect
+  # probes independently verify detection. A low false-positive rate alone
+  # does not establish useful detection.
+  default_enforcement: advisory
+  promotion_requires_measured_false_positive_rate: required
+  false_positive_rate_max: 0.05
+  measured_over: labeled_corpus_of_clean_and_malformed_inputs
+  promotion_recorded_in: hash_pinned_policy
+  promotion_inferred_by_tool: forbidden
+  unmeasured_promotion: forbidden
+  demotion_available: required
+
+proof:
+  sequence:
+    - green
+    - intended_defect_rejected
+    - restored_green

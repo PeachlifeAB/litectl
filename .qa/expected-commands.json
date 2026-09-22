@@ -1,0 +1,21 @@
+[
+  "arch",
+  "audit",
+  "bias",
+  "classify",
+  "conform",
+  "cred-gate",
+  "crap",
+  "currency",
+  "emit-evidence",
+  "escape-scan",
+  "fp-rate",
+  "gen-layer-applicability",
+  "gherkin-lint",
+  "init",
+  "list",
+  "migration-notes",
+  "scan",
+  "verify",
+  "worktree-run"
+]

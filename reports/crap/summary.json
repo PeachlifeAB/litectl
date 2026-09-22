@@ -1,0 +1,20 @@
+{
+  "language": "python",
+  "thresholds": {
+    "production_max": 50.0,
+    "test_max": 15.0,
+    "project_avg_max": 10.0
+  },
+  "production": {
+    "methods_scored": 193,
+    "max_crap": 41.48,
+    "avg_crap": 4.15,
+    "blockers": []
+  },
+  "test": {
+    "methods_scored": 0,
+    "max_crap": 0.0,
+    "blockers": []
+  },
+  "pass": true
+}

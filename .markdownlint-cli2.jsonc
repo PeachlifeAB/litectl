@@ -1,0 +1,24 @@
+{
+  // First-party documentation only. Agent tooling (.claude, .agents, .pi),
+  // vendored references (.gdog/cloned), QA tooling (.qa) and generated
+  // worktrees (.review) are not litectl's to lint.
+  "globs": ["README.md", "tests/**/*.md"],
+  "ignores": [
+    "**/node_modules/**",
+    ".gdog/**",
+    ".qa/**",
+    ".review/**",
+    ".claude/**",
+    ".agents/**",
+    ".pi/**",
+    ".cursor/**",
+    "mutants/**"
+  ],
+  "config": {
+    "default": true,
+    // Tables and fenced output in TESTING.md exceed 80 columns by design.
+    "MD013": false,
+    // Duplicate headings are meaningful under different sections.
+    "MD024": { "siblings_only": true }
+  }
+}

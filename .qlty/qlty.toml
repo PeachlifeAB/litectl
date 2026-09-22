@@ -99,8 +99,8 @@ set.ignored = true
 [[triage]]
 match.rules = ["bandit:B310"]
 match.file_patterns = [
-  "src/modules/workspace/infrastructure/*.py",
-  "template/tasks/infrastructure/*.py",
+  "src/litectl/modules/workspace/infrastructure/*.py",
+  "src/litectl/modules/catalog/infrastructure/*.py",
 ]
 set.ignored = true
 
@@ -110,7 +110,6 @@ set.ignored = true
 [[triage]]
 match.rules = ["bandit:B404", "bandit:B603"]
 match.file_patterns = [
-  "src/modules/workspace/infrastructure/*.py",
-  "template/tasks/infrastructure/*.py",
+  "src/litectl/modules/workspace/infrastructure/*.py",
 ]
 set.ignored = true
