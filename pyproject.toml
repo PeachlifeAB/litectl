@@ -282,7 +282,9 @@ crap = { cmd = "./.qa/node_modules/.bin/audit-harness crap --root . --target src
 # Project-owned: the harness conform runner validates agent-tooling SKILL.md
 # files and reaches none of litectl's declared artifacts. See tests/TESTING.md.
 conformance = { cmd = "python tests/conformance_gate.py", help = "validate declared artifacts against the LiteLLM schema" }
-mutate = { cmd = "mutmut run --max-children 1", help = "run mutation tests serially" }
+mutate-run = { cmd = "mutmut run --max-children 1", help = "generate and run mutation tests" }
+mutation-gate = { cmd = "python tests/mutation_gate.py", help = "enforce mutation dispositions" }
+mutate = { sequence = ["mutate-run", "mutation-gate"], help = "run mutation tests and enforce dispositions" }
 build = { cmd = "uv build", help = "build distributable wheel" }
 
 # Composed workflows (zero duplication)

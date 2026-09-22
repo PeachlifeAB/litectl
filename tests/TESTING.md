@@ -62,7 +62,7 @@ Host runtimes: uv 0.12.15, Python 3.14.7, Node v26.8.2, npm 12.0.2.
 | :--- | :---- | :----------- | :------ | :-------- | :----- | :------------- |
 | coverage | coverage 7.16.1 + `tests/coverage_gate.py` | all first-party production | `uv run poe coverage` | line >=90, branch >=85, enforced separately | `coverage.json` | 9 probes, see below |
 | crap | coverage + complexity | all production functions (first adoption) | `uv run poe crap` | per-function CRAP < 13 | JSON rows | add an uncovered complex function; require a finding |
-| mutation | mutmut 3.8.0 | all first-party production (first adoption) | `uv run poe mutate` | 0 actionable survivors, 0 unresolved dispositions | `mutants/` results | focused reconcile check: 52 killed, 3 reviewed equivalent; full baseline pending |
+| mutation | mutmut 3.8.0 + `tests/mutation_gate.py` | all first-party production (first adoption) | `uv run poe mutate` (mutmut, then disposition parser) | 0 actionable survivors, 0 unresolved dispositions | `mutants/` results + stdout | focused reconcile check: 52 killed, 3 reviewed equivalent; full baseline failing |
 | integrity | audit-harness 1.4.0 | pinned enforcement inputs | `audit-harness verify` | manifest matches | JSON | edit a pinned byte; require failure |
 | escape_scan | audit-harness | staged / push range | `audit-harness escape-scan --staged` | 0 escapes | JSON | stage a suppression; require failure |
 | conformance_artifacts | audit-harness `conform` + JSON Schema | `src/litectl/resources/**/*.yaml`, installed `config.yaml` | `audit-harness conform` | 0 unvalidated declared artifacts | JSON | add an unknown key to a provider file; require rejection |
