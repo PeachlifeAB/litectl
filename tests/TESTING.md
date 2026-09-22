@@ -128,8 +128,8 @@ Measured on the current candidate:
 
 | Metric | Measured | Floor | Verdict |
 | :----- | -------: | ----: | :------ |
-| line (statements) | 93.79% | 90% | **PASS** |
-| branch | 85.90% | 85% | **PASS** |
+| line (statements) | 94.36% | 90% | **PASS** |
+| branch | 87.95% | 85% | **PASS** |
 
 Startup reconciliation runs before `start` and `serve`, uses the recorded
 provider base and key when process environment variables are absent, and
@@ -150,18 +150,14 @@ Command: `uv run poe mutate`. Configuration uses mutmut 3.8.0 with
 `source_paths`, `pytest_add_cli_args_test_selection`, explicit
 `mutate_only_covered_lines = false`, and the required `also_copy` files.
 
-Focused `reconcile_local_models` run: 55 mutants generated, 52 killed, 3
-survived, 0 segfaults, and 0 untested. The three survivors are reviewed
-equivalences, not killed mutants:
+Focused slices are green for the affected module: `service.py` produced 382 mutants
+and all 382 were killed after adding lifecycle, failure, path, template, mode, and
+idempotency tests. The earlier `reconcile_local_models` slice produced 55 mutants,
+52 killed, and 3 reviewed equivalences.
 
-- `config_path.exists() or True` is equivalent because `update_config`
-  materializes `config.yaml` before the comparison.
-- `encoding="UTF-8"` is the same codec name as `"utf-8"`.
-- The fallback string `"XXXX"` is unreachable under the same config invariant.
-
-Full current first-adoption run: 3,050 mutants; 2,023 killed, 853 survived,
-169 had no tests, and 5 timed out. The mutation gate therefore remains FAIL
-under the zero-survivor policy; focused evidence does not replace this gate.
+Full current first-adoption run: 3,050 mutants; 2,147 killed, 729 survived, 169
+had no tests, and 5 timed out. The mutation gate remains FAIL under the
+zero-survivor policy; focused evidence does not replace this gate.
 
 ## Verified architecture properties
 
