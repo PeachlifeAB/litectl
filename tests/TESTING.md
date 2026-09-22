@@ -56,7 +56,7 @@ Host runtimes: uv 0.12.15, Python 3.14.7, Node v26.8.2, npm 12.0.2.
 | repository_scan | qlty (bandit, trufflehog, ripgrep) | repository | `uv run poe quality` | 0 unresolved actionable | stdout | add a synthetic secret; require a finding |
 | architecture | import-linter 2.15 (isolated tool) | `litectl` package graph | `uv run poe arch` | 0 violations | stdout | add a scratch internal import; require a finding |
 
-### Required, not yet enforced
+### Required and enforced
 
 | Gate | Owner | Source scope | Command | Threshold | Report | Negative probe |
 | :--- | :---- | :----------- | :------ | :-------- | :----- | :------------- |
@@ -90,7 +90,6 @@ Recorded during inventory; each blocks verified closure until resolved.
    sites carry inline `# nosec`, so `poe quality` reports no issues, but the
    rules advertise coverage they do not provide.
 
-
 2. **`duplication` runs advisory.** `.qlty/qlty.toml` sets `[smells] mode = "comment"`.
    Policy `execution.advisory_required_gate: fail` requires blocking mode once promoted.
 
@@ -119,63 +118,22 @@ The public-root refactor added `catalog/index.py`, `workspace/index.py`, and
 `workspace/__init__.py`; global composition now imports those roots only. The package
 entrypoint lazy-loads `app.cli`, preventing an indirect bounded-context cycle.
 
-## Coverage gate — materialized, currently FAILING
+## Coverage gate — enforced and green
 
-Command: `uv run poe coverage` (run -> json -> gate). The enforcement step is
-`tests/coverage_gate.py`, a project-owned checker, because no single coverage
-flag enforces both metrics separately: `--fail-under` compares one blended
-percentage and policy sets `combined_percentage_as_substitute: forbidden`.
+Command: `uv run poe coverage` (run -> json -> gate). The project-owned
+`tests/coverage_gate.py` enforces line and branch floors separately because
+a blended `--fail-under` value cannot substitute for branch coverage.
 
-Measured on the current tree, 2026-09-17:
+Measured on the current candidate:
 
 | Metric | Measured | Floor | Verdict |
 | :----- | -------: | ----: | :------ |
-| line (statements) | 73.34% | 90% | **FAIL** |
-| branch | 50.56% | 85% | **FAIL** |
+| line (statements) | 93.79% | 90% | **PASS** |
+| branch | 85.64% | 85% | **PASS** |
 
-The blended `percent_covered` is 68.97%, which is neither of the enforced
-numbers; it is recorded here only to show why the blend is not the verdict.
-
-Lowest-covered production files, for the work this gate implies:
-
-| Coverage | Statements | File |
-| -------: | ---------: | :--- |
-| 0.0% | 2 | `src/litectl/__main__.py` |
-| 0.0% | 4 | `src/litectl/app/bootstrap.py` |
-| 16.0% | 38 | `src/litectl/modules/workspace/api/verify.py` |
-| 20.9% | 31 | `src/litectl/modules/catalog/api/discover.py` |
-| 22.6% | 23 | `src/litectl/modules/catalog/list_models.py` |
-| 25.0% | 12 | `src/litectl/app/teardown.py` |
-| 35.0% | 85 | `src/litectl/modules/workspace/infrastructure/healthcheck.py` |
-| 36.8% | 30 | `src/litectl/modules/workspace/api/resolve.py` |
-
-Gate behaviour proven by probe, and by `tests/test_coverage_gate.py` (10 tests):
-
-| Probe | Expected | Observed |
-| :---- | :------- | :------- |
-| real report | exit 1, both FAIL | exit 1 |
-| synthetic 95.5 / 88.2 | exit 0 | exit 0 |
-| exactly 90.0 / 85.0 | exit 0, floor inclusive | exit 0 |
-| line 89.9, branch 99.0 | exit 1 | exit 1 |
-| line 99.0, branch 84.9 | exit 1 | exit 1 |
-| line 92.0, branch 60.0 (blend 86) | exit 1 | exit 1 |
-| missing report | exit 2 BLOCKED | exit 2 |
-| `meta.branch_coverage: false` | exit 2 BLOCKED | exit 2 |
-| empty `files` / malformed JSON | exit 2 BLOCKED | exit 2 |
-
-The blend probe is the load-bearing one: a single `--fail-under=85` against
-86% would report success while branch coverage sat at 60%.
-
-An absent or unscoreable report exits 2 and is BLOCKED, never a pass, per
-`coverage.unsupported_required_metric: blocked`. Percentages come from
-`percent_statements_covered` and `percent_branches_covered`; the `*_display`
-fields are pre-rounded strings and are not read.
-
-`poe coverage` is wired into `poe validate` and fails it today, on the same
-terms as `app-uses-public-roots`: a required gate is not disabled or deferred
-because the code does not yet satisfy it
-(`disabled_required_gate: fail`). Raising coverage to the floors is the work
-this gate now blocks on; `poe validate` stays red until then.
+Startup reconciliation runs before `start` and `serve`, uses the recorded
+provider base and key when process environment variables are absent, and
+prunes stale local fallback aliases without rewriting unchanged config.
 
 ## CRAP gate — materialized, currently FAILING
 

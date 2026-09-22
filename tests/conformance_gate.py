@@ -66,9 +66,15 @@ def interpolate(text: str, values: dict[str, str]) -> str:
 
 
 def declared_artifacts() -> Iterator[tuple[str, str, bool]]:
-    """Each manifest entry as (source, text, interpolate), from the package."""
+    """Each YAML manifest entry as (source, text, interpolate).
+
+    Python shims are deployed beside the config but validated by the
+    LiteLLM loader check, not the YAML/schema gate.
+    """
     root = files(RESOURCE_PACKAGE)
     for entry in MANIFEST:
+        if entry.source.endswith(".py"):
+            continue
         resource = root.joinpath(entry.source)
         if not resource.is_file():
             raise Unmeasured(f"declared artifact missing from package: {entry.source}")

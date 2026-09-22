@@ -6,70 +6,15 @@
     "project_avg_max": 10.0
   },
   "production": {
-    "methods_scored": 195,
-    "max_crap": 41.48,
-    "avg_crap": 4.1,
-    "blockers": [
-      {
-        "language": "python",
-        "path": "src/litectl/modules/catalog/api/prompts.py",
-        "method": "prompt_for_recovery",
-        "complexity": 9,
-        "coverage": 34.375,
-        "crap": 31.892486572265625,
-        "kind": "src"
-      },
-      {
-        "language": "python",
-        "path": "src/litectl/modules/workspace/api/resolve.py",
-        "method": "ensure_provider",
-        "complexity": 11,
-        "coverage": 36.8421052631579,
-        "crap": 41.48374398600379,
-        "kind": "src"
-      },
-      {
-        "language": "python",
-        "path": "src/litectl/modules/workspace/api/verify.py",
-        "method": "verify",
-        "complexity": 4,
-        "coverage": 16.0,
-        "crap": 13.483263999999998,
-        "kind": "src"
-      },
-      {
-        "language": "python",
-        "path": "src/litectl/modules/workspace/infrastructure/healthcheck.py",
-        "method": "list_models",
-        "complexity": 10,
-        "coverage": 34.95145631067961,
-        "crap": 37.52407508920342,
-        "kind": "src"
-      },
-      {
-        "language": "python",
-        "path": "src/litectl/modules/workspace/infrastructure/healthcheck.py",
-        "method": "_completion_content",
-        "complexity": 7,
-        "coverage": 34.95145631067961,
-        "crap": 20.48679679370968,
-        "kind": "src"
-      },
-      {
-        "language": "python",
-        "path": "src/litectl/modules/workspace/infrastructure/healthcheck.py",
-        "method": "choose_model",
-        "complexity": 6,
-        "coverage": 34.95145631067961,
-        "crap": 15.908667032113232,
-        "kind": "src"
-      }
-    ]
+    "methods_scored": 201,
+    "max_crap": 12.0,
+    "avg_crap": 3.02,
+    "blockers": []
   },
   "test": {
     "methods_scored": 0,
     "max_crap": 0.0,
     "blockers": []
   },
-  "pass": false
+  "pass": true
 }

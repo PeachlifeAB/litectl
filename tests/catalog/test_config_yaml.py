@@ -137,3 +137,44 @@ def test_selected_preset_self_heals_without_changing_default(
     assert any(
         "default_speed target changed" in warning for warning in repaired.warnings
     )
+
+
+_BASE_CONFIG_TAIL = """router_settings:
+  model_group_alias:
+    default_cloud: &cloud cloud-model
+    default: *cloud
+model_list: []
+"""
+
+
+def _discovery() -> Discovery:
+    return Discovery(MODELS, "omlx", [], {"cloud-model"})
+
+
+def test_update_migrates_broken_callback_reference(tmp_path: Path) -> None:
+    """The package-path callback reference could never load; update fixes it."""
+    path = tmp_path / "config.yaml"
+    path.write_text(
+        "---\n"
+        "litellm_settings:\n"
+        "  drop_params: true\n"
+        "  callbacks:\n"
+        "    - litectl.litellm_hooks.handler\n"
+        "    - my_custom.callbacks.logger\n" + _BASE_CONFIG_TAIL,
+        encoding="utf-8",
+    )
+
+    update = update_config(path, _discovery())
+
+    assert "litectl.litellm_hooks.handler" not in update.content
+    assert "- litectl_hooks.handler" in update.content
+    assert "- my_custom.callbacks.logger" in update.content
+
+
+def test_update_adds_callback_when_missing(tmp_path: Path) -> None:
+    path = tmp_path / "config.yaml"
+    path.write_text("---\n" + _BASE_CONFIG_TAIL, encoding="utf-8")
+
+    update = update_config(path, _discovery())
+
+    assert "- litectl_hooks.handler" in update.content
