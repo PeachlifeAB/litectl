@@ -30,7 +30,10 @@ def test_shipped_artifacts_all_validate() -> None:
 
 
 def test_unknown_top_level_key_is_rejected(schema_json: str) -> None:
-    fragment = "model_list:\n  - model_name: a\n    litellm_params:\n      model: openai/a\nbogus: true\n"
+    fragment = (
+        "model_list:\n  - model_name: a\n    litellm_params:\n"
+        "      model: openai/a\nbogus: true\n"
+    )
 
     with pytest.raises(ValueError, match="Additional properties"):
         check_artifact(fragment, False, schema_json)
