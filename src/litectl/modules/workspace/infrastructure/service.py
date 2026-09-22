@@ -5,7 +5,7 @@ from __future__ import annotations
 import html
 import os
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
@@ -150,11 +150,18 @@ def install_service(context: ServiceContext, platform: str = sys.platform) -> bo
     return True
 
 
-def start_service(context: ServiceContext, platform: str = sys.platform) -> bool:
+def start_service(
+    context: ServiceContext,
+    platform: str = sys.platform,
+    reconcile: Callable[[], Sequence[str]] | None = None,
+) -> bool:
     if platform not in SUPPORTED_PLATFORMS:
         return False
     if service_running(context, platform):
         return True
+    if reconcile is not None:
+        for warning in reconcile():
+            print(f"WARN  {warning}")
     if platform == "darwin":
         destination = service_file(context, platform)
         _bootstrap_launchd(context, destination)

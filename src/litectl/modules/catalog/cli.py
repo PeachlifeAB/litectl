@@ -18,7 +18,9 @@ from .domain.aliases import (
 from .domain.models import ProviderSpec
 from .infrastructure.config import PROVIDER_SPECS, AppConfig
 from .infrastructure.config_reader import (
+    read_environment_variables,
     read_provider_aliases,
+    read_provider_base,
     validate_config_text,
     validate_yaml_text,
 )
@@ -39,8 +41,10 @@ from .pipeline import (
     render_all,
 )
 
+CONFIG_FILENAME = "config.yaml"
 
-def _discover_fn(cfg: AppConfig, name: str) -> DiscoverFn:
+
+def build_discover_fn(cfg: AppConfig, name: str) -> DiscoverFn:
     def discover() -> ProbeResult:
         return discover_openai_compatible(cfg.api_base(name), cfg.api_key(name))
 
@@ -50,7 +54,10 @@ def _discover_fn(cfg: AppConfig, name: str) -> DiscoverFn:
 def build_registry(cfg: AppConfig) -> Registry:
     """Every provider, discovered through the same OpenAI-compatible path."""
     return {
-        name: (ProviderSpec(name, cfg.api_base(name), key_env), _discover_fn(cfg, name))
+        name: (
+            ProviderSpec(name, cfg.api_base(name), key_env),
+            build_discover_fn(cfg, name),
+        )
         for name, (_base_env, key_env, _default) in PROVIDER_SPECS.items()
     }
 
@@ -65,7 +72,7 @@ def discover_openai_compatible(
 
 def build_config_update(cfg: AppConfig, discovery: Discovery) -> ConfigUpdate:
     """Update config.yaml, asking for a replacement if the default vanished."""
-    path = cfg.base_dir / "config.yaml"
+    path = cfg.base_dir / CONFIG_FILENAME
     try:
         return update_config(path, discovery)
     except UnavailableDefaultError as error:
@@ -100,7 +107,7 @@ def main(base_dir: Path, argv: list[str] | None = None) -> int:
     update = build_config_update(cfg, discovery)
     validate_yaml_text(update.content)
     validate_config_text(update.content, schema_json)
-    rendered.outputs[cfg.base_dir / "config.yaml"] = update.content
+    rendered.outputs[cfg.base_dir / CONFIG_FILENAME] = update.content
 
     FileStorageAdapter.write_batch(rendered.outputs)
     report_results(rendered, update.warnings, discovery)
@@ -122,3 +129,33 @@ def report_results(
         "Fallbacks for the cloud model group:"
         f" {len(discovery.available_aliases)} model(s)"
     )
+
+
+def reconcile_local_models(base_dir: Path) -> list[str]:
+    """Prune recorded local fallback aliases before a proxy starts."""
+    cfg = AppConfig.from_env(base_dir)
+    provider_path = provider_models_path(cfg, LOCAL_PROVIDER)
+    previous = read_provider_aliases(provider_path)
+    outcome = discover_openai_compatible(
+        cfg.api_base(LOCAL_PROVIDER) or read_provider_base(provider_path),
+        cfg.api_key(LOCAL_PROVIDER)
+        or read_environment_variables(cfg.base_dir / CONFIG_FILENAME).get(
+            "OMLX_API_KEY"
+        ),
+    )
+    if isinstance(outcome, Unreachable):
+        return [f"local model sync skipped: {outcome.reason}"]
+
+    discovery = build_discovery(cfg, list(outcome.models), previous)
+    try:
+        update = update_config(cfg.base_dir / CONFIG_FILENAME, discovery)
+    except UnavailableDefaultError as error:
+        return [f"local model sync skipped: default model unavailable: {error.model}"]
+
+    validate_yaml_text(update.content)
+    validate_config_text(update.content, build_config_schema())
+    config_path = cfg.base_dir / CONFIG_FILENAME
+    current = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    if update.content != current:
+        FileStorageAdapter.write_batch({config_path: update.content})
+    return list(update.warnings)

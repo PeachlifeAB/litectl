@@ -233,3 +233,33 @@ def test_logs_stream_from_xdg_state(
             str(service_context.state_dir / "proxy.log"),
         )
     ]
+
+
+def test_start_service_reconciles_before_native_start(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    events: list[str] = []
+    service_context = context(tmp_path)
+
+    monkeypatch.setattr(service, "service_running", lambda *_args: False)
+
+    def run_manager(
+        _platform: str, _args: Sequence[str], capture: bool = True
+    ) -> CommandResult:
+        del capture
+        events.append("start")
+        return CommandResult(0)
+
+    monkeypatch.setattr(service, "_run_manager", run_manager)
+
+    def reconcile() -> list[str]:
+        events.append("reconcile")
+        return ["removed omlx-old"]
+
+    assert service.start_service(
+        service_context,
+        platform="linux",
+        reconcile=reconcile,
+    )
+    assert events == ["reconcile", "start"]
+    assert "removed omlx-old" in capsys.readouterr().out

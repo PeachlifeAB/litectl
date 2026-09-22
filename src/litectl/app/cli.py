@@ -16,6 +16,7 @@ from litectl.modules.catalog.index import (
 )
 from litectl.modules.catalog.index import (
     list_models_main,
+    reconcile_local_models,
 )
 from litectl.modules.catalog.index import (
     main as catalog_main,
@@ -114,6 +115,7 @@ def _serve(args: argparse.Namespace, context: RuntimeContext) -> int:
         args.watch,
         args.shutdown_grace_period_seconds,
         args.debounce_milliseconds,
+        reconcile=lambda: reconcile_local_models(context.base_dir),
     )
 
 
@@ -123,7 +125,10 @@ def _unsupported() -> int:
 
 
 def _start(_args: argparse.Namespace, context: RuntimeContext) -> int:
-    if not start_service(context.service):
+    if not start_service(
+        context.service,
+        reconcile=lambda: reconcile_local_models(context.base_dir),
+    ):
         return _unsupported()
     print("LiteLLM service started.")
     return 0

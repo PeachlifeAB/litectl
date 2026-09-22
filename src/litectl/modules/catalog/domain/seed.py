@@ -27,6 +27,8 @@ router_settings:
 
 litellm_settings:
   drop_params: true
+  callbacks:
+    - litectl_hooks.handler
 
 model_list: []
 """

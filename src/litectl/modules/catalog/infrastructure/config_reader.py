@@ -42,6 +42,19 @@ def read_provider_aliases(path: Path) -> list[str]:
     ]
 
 
+def read_provider_base(path: Path) -> str | None:
+    """The endpoint a provider file records, if any, for offline-free replay."""
+    if not path.exists():
+        return None
+    data = YAML(typ="safe").load(path.read_text(encoding="utf-8")) or {}
+    for entry in data.get("model_list", []):
+        if isinstance(entry, Mapping):
+            base = entry.get("litellm_params", {}).get("api_base")
+            if base:
+                return str(base)
+    return None
+
+
 def read_config_model_groups(path: Path) -> set[str]:
     """Every model group the config registers, including via `include`."""
     if not path.exists():

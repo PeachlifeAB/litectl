@@ -12,3 +12,7 @@ fi
 uv tool install --force "${SCRIPT_DIR}"
 TOOL_BIN="$(uv tool dir --bin)/litectl"
 "${TOOL_BIN}" install "${TARGET_DIR}"
+
+if ! "${TOOL_BIN}" --config-dir "${TARGET_DIR}" update all --yes; then
+    echo "litectl: provider model sync skipped; existing config preserved" >&2
+fi

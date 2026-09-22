@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import hashlib
+import importlib.resources
 import os
 import signal
 import sys
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Callable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -110,6 +111,27 @@ async def start_child(config_dir: Path, port: int) -> asyncio.subprocess.Process
         env=_proxy_environment(config_dir),
         start_new_session=True,
     )
+
+
+CALLBACK_SHIM_NAME = "litectl_hooks.py"
+
+
+def ensure_callback_shim(config_dir: Path) -> None:
+    """Materialize the callback shim LiteLLM loads from beside the config.
+
+    LiteLLM resolves custom callbacks as files next to config.yaml, so the
+    registered hook needs a file there. Idempotent: an existing file is
+    never overwritten.
+    """
+    destination = config_dir / CALLBACK_SHIM_NAME
+    if destination.exists():
+        return
+    shim = (
+        importlib.resources.files("litectl.resources")
+        .joinpath(CALLBACK_SHIM_NAME)
+        .read_text(encoding="utf-8")
+    )
+    destination.write_text(shim, encoding="utf-8")
 
 
 def signal_process_group(pid: int, sent: signal.Signals) -> None:
@@ -267,13 +289,18 @@ def run_proxy(config_dir: Path, port: int) -> int:
     return 0
 
 
-def main(
+def main(  # noqa: PLR0913 — CLI lifecycle options plus startup hook
     config_dir: Path,
     port: int | None = None,
     watch: bool = False,
     shutdown_grace_period_seconds: float = DEFAULT_SHUTDOWN_GRACE_SECONDS,
     debounce_milliseconds: int = DEFAULT_DEBOUNCE_MILLISECONDS,
+    reconcile: Callable[[], Sequence[str]] | None = None,
 ) -> int:
+    if reconcile is not None:
+        for warning in reconcile():
+            print(f"WARN  {warning}")
+    ensure_callback_shim(config_dir)
     resolved_port = port or int(os.environ.get("LITELLM_PORT", DEFAULT_PORT))
     if watch:
         return asyncio.run(

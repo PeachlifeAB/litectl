@@ -14,6 +14,7 @@ class Entry:
 
 MANIFEST: tuple[Entry, ...] = (
     Entry("config.yaml", "config.yaml", interpolate=True),
+    Entry("litectl_hooks.py", "litectl_hooks.py"),
     Entry(
         "providers/cerebras/models.yaml",
         "providers/cerebras/models.yaml",

@@ -231,3 +231,53 @@ def test_supervisor_closes_pending_watcher_before_child(
 
     assert result == 0
     assert child.closed
+
+
+def test_direct_serve_reconciles_before_proxy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    events: list[tuple[str, object]] = []
+
+    def run_proxy(config_dir: Path, port: int) -> int:
+        events.append(("proxy", (config_dir, port)))
+        return 0
+
+    monkeypatch.setattr(serve, "run_proxy", run_proxy)
+
+    def reconcile() -> list[str]:
+        events.append(("reconcile", None))
+        return ["removed omlx-old"]
+
+    result = serve.main(
+        tmp_path,
+        port=4100,
+        reconcile=reconcile,
+    )
+
+    assert result == 0
+    assert events == [("reconcile", None), ("proxy", (tmp_path, 4100))]
+    assert "removed omlx-old" in capsys.readouterr().out
+
+
+def test_ensure_callback_shim_writes_once_and_preserves(tmp_path: Path) -> None:
+    """Startup repair is idempotent and never clobbers user content."""
+    serve.ensure_callback_shim(tmp_path)
+
+    shim = tmp_path / "litectl_hooks.py"
+    assert "handler" in shim.read_text(encoding="utf-8")
+
+    shim.write_text("# custom\n", encoding="utf-8")
+    serve.ensure_callback_shim(tmp_path)
+    assert shim.read_text(encoding="utf-8") == "# custom\n"
+
+
+def test_main_materializes_callback_shim_into_empty_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The serve entry point repairs a missing shim before any proxy start."""
+    monkeypatch.setattr(serve, "run_proxy", lambda _dir, _port: 0)  # never bind a port
+
+    code = serve.main(tmp_path)
+
+    assert code == 0
+    assert (tmp_path / "litectl_hooks.py").exists()

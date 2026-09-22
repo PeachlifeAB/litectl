@@ -41,7 +41,7 @@ def test_status_reports_running_service(
 def test_unsupported_start_points_to_foreground_serve(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(cli, "start_service", lambda context: False)
+    monkeypatch.setattr(cli, "start_service", lambda context, **_kwargs: False)
 
     result = cli.main(["--config-dir", str(tmp_path), "start"])
 
@@ -54,9 +54,15 @@ def test_serve_watch_options_are_forwarded(
 ) -> None:
     received: list[tuple[Path, int | None, bool, float, int]] = []
 
-    def fake_serve(
-        base: Path, port: int | None, watch: bool, grace: float, debounce: int
+    def fake_serve(  # noqa: PLR0913 — mirrors the serve adapter contract
+        base: Path,
+        port: int | None,
+        watch: bool,
+        grace: float,
+        debounce: int,
+        reconcile: object,
     ) -> int:
+        assert callable(reconcile)
         received.append((base, port, watch, grace, debounce))
         return 0
 

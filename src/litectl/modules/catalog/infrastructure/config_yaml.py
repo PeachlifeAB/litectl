@@ -32,6 +32,35 @@ from litectl.modules.catalog.infrastructure.config_reader import (
     round_trip_yaml,
 )
 
+CALLBACK_NAME = "litectl_hooks.handler"
+BROKEN_CALLBACK_NAME = "litectl.litellm_hooks.handler"
+
+
+def _apply_callbacks(config: CommentedMap) -> None:
+    """Own the hook entry: fix the broken name, keep every other callback."""
+    settings = config.setdefault("litellm_settings", CommentedMap())
+    if not isinstance(settings, CommentedMap):
+        return
+    callbacks = settings.get("callbacks")
+    if not isinstance(callbacks, CommentedSeq):
+        callbacks = (
+            CommentedSeq(
+                item for item in callbacks if str(item) != BROKEN_CALLBACK_NAME
+            )
+            if isinstance(callbacks, list)
+            else CommentedSeq()
+        )
+        settings["callbacks"] = callbacks
+    else:
+        replaced = [
+            CALLBACK_NAME if str(item) == BROKEN_CALLBACK_NAME else item
+            for item in callbacks
+        ]
+        callbacks.clear()
+        callbacks.extend(replaced)
+    if CALLBACK_NAME not in [str(item) for item in callbacks]:
+        callbacks.insert(0, CALLBACK_NAME)
+
 
 @dataclass(frozen=True)
 class ConfigUpdate:
@@ -131,6 +160,7 @@ def update_config(
     preset = preset_for(aliases, recovery_preset)
     check_default_available(aliases, targets, preset, discovery.available_aliases)
 
+    _apply_callbacks(config)
     values = _apply_aliases(aliases, targets, preset)
     warnings.extend(_apply_fallbacks(router, discovery, targets, values, active_before))
     config.setdefault("model_list", CommentedSeq())

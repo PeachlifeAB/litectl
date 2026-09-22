@@ -20,8 +20,9 @@ def schema_json() -> str:
 
 def test_every_manifest_entry_is_reachable_in_the_package() -> None:
     sources = [source for source, _text, _fill in declared_artifacts()]
+    yaml_entries = [e.source for e in MANIFEST if not e.source.endswith(".py")]
 
-    assert sources == [entry.source for entry in MANIFEST]
+    assert sources == yaml_entries
     assert sources, "manifest must declare at least one artifact"
 
 

@@ -14,6 +14,7 @@ from litectl.modules.workspace.infrastructure.filesystem import install
 RESOURCE_PACKAGE = "litectl.resources"
 RUNTIME_FILES = {
     "config.yaml",
+    "litectl_hooks.py",
     "providers/cerebras/models.yaml",
     "providers/ds4/models.yaml",
     "providers/llama-cpp/models.yaml",

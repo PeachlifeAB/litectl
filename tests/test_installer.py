@@ -34,7 +34,9 @@ def test_installer_uses_uv_without_mise(tmp_path: Path, project_root: Path) -> N
         fake_bin / "litectl",
         f"#!{sys.executable}\n"
         "import os, pathlib, sys\n"
-        "pathlib.Path(os.environ['CAPTURE']).write_text(' '.join(sys.argv[1:]))\n",
+        "path = pathlib.Path(os.environ['CAPTURE'])\n"
+        "with path.open('a', encoding='utf-8') as stream:\n"
+        "    stream.write(' '.join(sys.argv[1:]) + '\\n')\n",
     )
     environment = {
         **os.environ,
@@ -55,5 +57,6 @@ def test_installer_uses_uv_without_mise(tmp_path: Path, project_root: Path) -> N
     )
 
     assert capture.read_text(encoding="utf-8") == (
-        f"install {tmp_path / 'config/litectl'}"
+        f"install {tmp_path / 'config/litectl'}\n"
+        f"--config-dir {tmp_path / 'config/litectl'} update all --yes\n"
     )

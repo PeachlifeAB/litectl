@@ -231,6 +231,9 @@ output = "coverage.xml"
 [tool.vulture]
 min_confidence = 80
 paths = ["src"]
+# LiteLLM prescribes the async_pre_call_hook signature; its context
+# arguments are intentionally unused.
+ignore_names = ["user_api_key_dict", "call_type", "cache"]
 
 [tool.mypy]
 explicit_package_bases = true
