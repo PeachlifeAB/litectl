@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import locale
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,8 @@ from ruamel.yaml import YAML
 from litectl.modules.catalog import cli as catalog
 from litectl.modules.catalog.application.ports import Reachable, Unreachable
 from litectl.modules.catalog.domain.models import ModelDescriptor
+from litectl.modules.catalog.infrastructure.config_yaml import ConfigUpdate
+from litectl.modules.catalog.infrastructure.storage import FileStorageAdapter
 
 CONFIG = """---
 include:
@@ -50,6 +53,40 @@ def test_reconcile_local_models_prunes_vanished_recorded_fallback(
     fallbacks = config["router_settings"]["fallbacks"][0]["default"]
     assert fallbacks == ["custom-route", "omlx-new-4b"]
     assert warnings == ["unavailable fallback removed: omlx-old"]
+
+
+def test_reconcile_local_models_does_not_rewrite_unchanged_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_workspace(tmp_path)
+    original = (tmp_path / "config.yaml").read_text(encoding="utf-8") + "# café\n"
+    (tmp_path / "config.yaml").write_text(original, encoding="utf-8")
+    monkeypatch.setenv("OMLX_API_BASE", "http://127.0.0.1:8008/v1")
+    monkeypatch.setattr(
+        catalog,
+        "discover_openai_compatible",
+        lambda _base, _key: Reachable(
+            "http://127.0.0.1:8008/v1", (ModelDescriptor("Old"),)
+        ),
+    )
+    monkeypatch.setattr(
+        catalog,
+        "update_config",
+        lambda *_args: ConfigUpdate(original, ()),
+    )
+    writes: list[dict[Path, str]] = []
+    monkeypatch.setattr(
+        FileStorageAdapter,
+        "write_batch",
+        lambda batch: writes.append(batch),
+    )
+    previous_locale = locale.setlocale(locale.LC_CTYPE)
+    try:
+        locale.setlocale(locale.LC_CTYPE, "C")
+        assert catalog.reconcile_local_models(tmp_path) == []
+    finally:
+        locale.setlocale(locale.LC_CTYPE, previous_locale)
+    assert writes == []
 
 
 def test_reconcile_local_models_keeps_config_when_provider_is_offline(

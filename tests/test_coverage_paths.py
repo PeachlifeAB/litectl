@@ -65,6 +65,18 @@ def service_context(root: Path) -> ServiceContext:
     )
 
 
+def printed_lines(capsys: pytest.CaptureFixture[str]) -> list[str]:
+    return [line for line in capsys.readouterr().out.splitlines() if line]
+
+
+def assert_printed_line(capsys: pytest.CaptureFixture[str], expected: str) -> None:
+    assert expected == next(line for line in printed_lines(capsys) if line == expected)
+
+
+def assert_printed_lines(capsys: pytest.CaptureFixture[str], *expected: str) -> None:
+    assert set(expected).issubset(set(printed_lines(capsys)))
+
+
 def test_verify_reports_unauthorized_and_empty_models(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -74,11 +86,16 @@ def test_verify_reports_unauthorized_and_empty_models(
         lambda *_args: Attempt(unauthorized=True),
     )
     assert not verify_api.verify(tmp_path, "key", "4000")
-    assert "401 Unauthorized" in capsys.readouterr().out
+    assert_printed_line(
+        capsys,
+        "✗ HTTP 401 Unauthorized: master key mismatch with the proxy environment.",
+    )
 
     monkeypatch.setattr(verify_api, "wait_for_models", lambda *_args: Attempt())
     assert not verify_api.verify(tmp_path, "key", "4000")
-    assert "No concrete chat models" in capsys.readouterr().out
+    expected = "ℹ No concrete chat models registered."
+    expected += " Check providers, or run `litectl update`."
+    assert_printed_line(capsys, expected)
 
 
 def test_verify_handles_no_local_model_and_completion(
@@ -90,7 +107,10 @@ def test_verify_handles_no_local_model_and_completion(
         lambda *_args: Attempt(models=("default_cloud",)),
     )
     assert verify_api.verify(tmp_path, "key", "4000")
-    assert "No local chat model" in capsys.readouterr().out
+    assert_printed_line(
+        capsys,
+        "✓ Proxy ready. No local chat model is available for a smoke request.",
+    )
 
     monkeypatch.setattr(
         verify_api,
@@ -99,7 +119,7 @@ def test_verify_handles_no_local_model_and_completion(
     )
     monkeypatch.setattr(verify_api, "complete", lambda *_args: "local-ok")
     assert verify_api.verify(tmp_path, "key", "4000")
-    assert "local-ok" in capsys.readouterr().out
+    assert_printed_line(capsys, "  local-ok")
 
 
 def test_teardown_cancels_or_removes_state(
@@ -111,7 +131,7 @@ def test_teardown_cancels_or_removes_state(
     monkeypatch.setattr(builtins, "input", lambda _prompt: "n")
     teardown.main(context)
     assert context.state_dir.exists()
-    assert "Cancelled" in capsys.readouterr().out
+    assert_printed_line(capsys, "Cancelled.")
 
     calls: list[ServiceContext] = []
     monkeypatch.setattr(teardown, "remove_service", calls.append)
@@ -127,15 +147,15 @@ def test_discovery_review_reports_changes_and_confirmation(
     changed = ModelDiff("omlx", added=("new",), removed=("old",))
     unchanged = ModelDiff("ollama", unchanged=("same",))
     discovery.review([changed], assume_yes=True)
-    output = capsys.readouterr().out
-    assert "+ new" in output
-    assert "- old" in output
+    assert_printed_lines(capsys, "      + new", "      - old")
     assert discovery.review([unchanged], assume_yes=True) is False
-    assert "No changes" in capsys.readouterr().out
+    assert_printed_line(capsys, "No changes.")
 
     monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
     assert discovery.confirm() is False
-    assert "Not a terminal" in capsys.readouterr().out
+    assert_printed_line(
+        capsys, "Not a terminal; nothing written. Re-run with --yes to save."
+    )
 
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(builtins, "input", lambda _prompt: "y")
@@ -150,15 +170,17 @@ def test_list_models_reports_empty_and_recorded_providers(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     list_models.main(tmp_path)
-    assert "No providers recorded" in capsys.readouterr().out
+    assert_printed_line(capsys, "No providers recorded yet. Run `litectl update`.")
 
     provider = tmp_path / "providers/omlx/models.yaml"
     provider.parent.mkdir(parents=True)
     provider.write_text("model_list:\n  - model_name: omlx-local\n", encoding="utf-8")
     list_models.main(tmp_path)
-    output = capsys.readouterr().out
-    assert "omlx (1 models)" in output
-    assert "1 model group(s)" in output
+    assert_printed_lines(
+        capsys,
+        "omlx (1 models)",
+        "1 model group(s) across 1 provider(s).",
+    )
 
 
 def test_install_prompts_accept_input_and_decline_interrupts(
@@ -172,7 +194,11 @@ def test_install_prompts_accept_input_and_decline_interrupts(
     assert install_prompts.ask("key?") == ""
     assert install_prompts.ask_omlx_key(8008) == ""
     assert install_prompts.ask_cerebras_key() == ""
-    assert "Notice" in capsys.readouterr().out
+    assert_printed_lines(
+        capsys,
+        "[Notice] Local inference server on port 8008 requires authentication.",
+        "[Notice] No local inference server detected.",
+    )
 
 
 def test_healthcheck_lists_models_and_waits(
@@ -228,7 +254,10 @@ def test_healthcheck_handles_http_and_completion_failures(
         "urlopen",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("down")),
     )
-    assert "test call notice" in healthcheck.complete("http://proxy", "key", "omlx-a")
+    assert (
+        healthcheck.complete("http://proxy", "key", "omlx-a")
+        == "test call notice: down"
+    )
 
 
 def test_resolve_settings_and_provider_paths(
@@ -253,7 +282,8 @@ def test_resolve_settings_and_provider_paths(
     )
     monkeypatch.setattr(resolve_api, "ask_cerebras_key", lambda: "cloud-key")
     assert resolve_api.ensure_provider(settings).cerebras_key == "cloud-key"
-    assert resolve_api.mint_master_key().startswith("sk-local-")
+    minted = resolve_api.mint_master_key()
+    assert minted.startswith("sk-local-") and len(minted) > 9
     assert resolve_api.read_settings(tmp_path, tmp_path).master_key
 
 
@@ -307,11 +337,12 @@ def test_process_adapter_resolves_and_runs(
 def test_model_diffs_cover_available_and_unavailable_paths() -> None:
     changed = diff_models("omlx", ["new", "same"], ["old", "same"])
     assert changed.changed and changed.available
-    assert "+1 -1" in changed.summary()
+    assert changed.summary() == "omlx: +1 -1"
     unchanged = diff_models("omlx", ["same"], ["same"])
     assert unchanged.summary() == "omlx: no changes (1 models)"
     offline = unavailable("omlx", "down", ["old"])
-    assert not offline.available and "keeping recorded models" in offline.summary()
+    assert not offline.available
+    assert offline.summary() == "omlx: down (keeping recorded models)"
     assert any_changed([changed]) and not any_changed([unchanged])
 
 
@@ -319,7 +350,7 @@ def test_bootstrap_and_module_entrypoints(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     bootstrap.main()
-    assert "Application initialized" in capsys.readouterr().out
+    assert_printed_line(capsys, "Application initialized.")
     monkeypatch.setattr(cli, "main", lambda: 0)
     with pytest.raises(SystemExit) as raised:
         runpy.run_module("litectl.__main__", run_name="__main__")
@@ -331,6 +362,7 @@ def test_catalog_recovery_prompt_covers_interactive_choices(
 ) -> None:
     from litectl.modules.catalog.api.prompts import (
         ABORT_CHOICE,
+        RECOMMENDED_PRESET,
         prompt_for_recovery,
     )
     from litectl.modules.catalog.domain.aliases import (
@@ -349,7 +381,11 @@ def test_catalog_recovery_prompt_covers_interactive_choices(
     choices = iter(("invalid", ""))
     monkeypatch.setattr(builtins, "input", lambda _prompt: next(choices))
     assert prompt_for_recovery(error) == PRESETS[0]
-    assert "recommended" in capsys.readouterr().out
+    expected = (
+        f"  {PRESETS.index(RECOMMENDED_PRESET) + 1}. default_{RECOMMENDED_PRESET:<7} "
+    )
+    expected += f"target-{RECOMMENDED_PRESET} (recommended)"
+    assert_printed_line(capsys, expected)
 
     monkeypatch.setattr(builtins, "input", lambda _prompt: ABORT_CHOICE)
     with pytest.raises(SystemExit, match="Update aborted"):
@@ -360,13 +396,19 @@ def test_catalog_recovery_prompt_covers_interactive_choices(
     ("failure", "expected"),
     [
         ("forbidden", "authentication failed (HTTP 403)"),
-        ("payment", "payment or quota"),
+        (
+            "payment",
+            "provider reports payment or quota required (HTTP 402)",
+        ),
         ("server", "HTTP 500"),
         ("timed_out", "connection timed out"),
-        ("down", "endpoint unreachable"),
+        ("down", "endpoint unreachable (host down)"),
         ("bad_json", "invalid payload"),
         ("key", "invalid payload"),
-        ("scheme", "refusing to open"),
+        (
+            "scheme",
+            "refusing to open ftp URL: 'ftp://provider/models'; allowed: http, https",
+        ),
     ],
 )
 def test_openai_adapter_describes_provider_failures(
@@ -397,7 +439,7 @@ def test_openai_adapter_describes_provider_failures(
     base = "ftp://provider" if failure == "scheme" else "http://provider/v1"
     result = openai_compat.fetch_models(base)
     assert isinstance(result, Unreachable)
-    assert expected in result.reason
+    assert result.reason == expected
 
 
 def test_probe_handles_non_auth_http_and_refused_connection(
@@ -463,22 +505,29 @@ def test_healthcheck_exhausts_readiness_and_handles_bad_payloads(
 def test_healthcheck_completion_failure_shapes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    malformed: tuple[dict[str, object], ...] = (
-        {},
-        {"choices": []},
-        {"choices": [{}]},
-        {"choices": [{"message": {}}]},
-        {"choices": [{"message": {"content": 1}}]},
+    malformed: tuple[tuple[dict[str, object], str], ...] = (
+        ({}, "test call notice: completion response has no choices"),
+        ({"choices": []}, "test call notice: completion response has no choices"),
+        (
+            {"choices": [{}]},
+            "test call notice: completion response has no message",
+        ),
+        (
+            {"choices": [{"message": {}}]},
+            "test call notice: completion response has no text",
+        ),
+        (
+            {"choices": [{"message": {"content": 1}}]},
+            "test call notice: completion response has no text",
+        ),
     )
-    for payload in malformed:
+    for payload, expected in malformed:
         monkeypatch.setattr(
             urllib.request,
             "urlopen",
             lambda *_args, payload=payload, **_kwargs: Response(payload),
         )
-        assert "test call notice" in healthcheck.complete(
-            "http://proxy", "key", "omlx-model"
-        )
+        assert healthcheck.complete("http://proxy", "key", "omlx-model") == expected
 
     error = urllib.error.HTTPError(
         "http://proxy/v1/chat/completions",
@@ -492,8 +541,9 @@ def test_healthcheck_completion_failure_shapes(
         "urlopen",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(error),
     )
-    assert healthcheck.complete("http://proxy", "key", "omlx-model").startswith(
-        "HTTP 500"
+    assert (
+        healthcheck.complete("http://proxy", "key", "omlx-model")
+        == "HTTP 500: bad response"
     )
 
 
@@ -534,15 +584,18 @@ def test_catalog_cli_recovery_and_no_change_paths(
 
     assert catalog_cli.main(tmp_path, ["unknown"]) == 1
     assert catalog_cli.main(tmp_path, ["omlx", "--yes"]) == 0
-    assert "No changes" in capsys.readouterr().out
+    assert_printed_line(capsys, "No changes.")
 
     rendered = Rendered(reports=["report"], entries=["- model_name: x\n"])
     catalog_cli.report_results(
         rendered, ("warning",), Discovery([], "omlx", [], {"omlx-x"})
     )
-    output = capsys.readouterr().out
-    assert (
-        "report" in output and "WARN  warning" in output and "1 model routes" in output
+    assert_printed_lines(
+        capsys,
+        "report",
+        "WARN  warning",
+        "Generated config.yaml (1 model routes)",
+        "Fallbacks for the cloud model group: 1 model(s)",
     )
 
 
@@ -574,7 +627,9 @@ def test_bootstrap_config_and_service_edges(
     assert serve.validated_fingerprint(tmp_path) is None
     monkeypatch.setattr(serve, "_config_schema", lambda: "{}")
     (tmp_path / "config.yaml").write_text("model_list: []\n", encoding="utf-8")
-    assert serve.validated_fingerprint(tmp_path) is not None
+    fingerprint = serve.validated_fingerprint(tmp_path)
+    assert isinstance(fingerprint, str)
+    assert len(fingerprint) == 64
 
     context = service_context(tmp_path)
     monkeypatch.setattr(service, "service_running", lambda *_args: False)
@@ -718,7 +773,7 @@ def test_app_handlers_cover_success_dispatch(
     assert cli._logs(Namespace(), runtime) == 7
     monkeypatch.setattr(teardown_module, "main", lambda *_args: None)
     assert cli._teardown(Namespace(yes=True), runtime) == 0
-    assert "started" in capsys.readouterr().out.lower()
+    assert_printed_line(capsys, "LiteLLM service started.")
 
 
 def test_config_reader_seeds_and_rejects_non_mapping(tmp_path: Path) -> None:
@@ -726,7 +781,7 @@ def test_config_reader_seeds_and_rejects_non_mapping(tmp_path: Path) -> None:
 
     seeded = tmp_path / "seeded.yaml"
     config = config_reader.load_config(seeded)
-    assert "router_settings" in config
+    assert config["router_settings"]["routing_strategy"] == "usage-based-routing"
     seeded.write_text("[]\n", encoding="utf-8")
     with pytest.raises(TypeError, match="top-level YAML mapping"):
         config_reader.load_config(seeded)

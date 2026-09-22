@@ -24,7 +24,7 @@ requires = ["uv_build>=0.12.7,<0.13"]
 build-backend = "uv_build"
 
 [dependency-groups]
-test = ["pytest~=9.0", "mutmut~=3.3.0"]
+test = ["pytest~=9.0", "mutmut~=3.8.0"]
 dev = [
   "coverage==7.16.1",
   "mypy~=2.3.1",
@@ -183,30 +183,16 @@ forbidden_modules = [
 ]
 allow_indirect_imports = true
 
-# Mutation testing. First adoption scope is all first-party production
-# (`mutation.first_adoption_scope: all_first_party_production`), so nothing is
-# narrowed to changed files yet.
-#
-# Policy requires mutants generated independently of line coverage, so that
-# uncovered code cannot silently produce zero mutants and report success over
-# the code least tested (`zero_mutants_with_eligible_source: unverified`).
-# mutmut 3.3.1 has no coverage filter to disable: its Config exposes only
-# also_copy, do_not_mutate, max_stack_depth, debug, paths_to_mutate and
-# tests_dir (verified in the installed __main__.py), and it mutates
-# independently of coverage by default. An older `mutate_only_covered_lines`
-# key would be silently ignored here, so it is deliberately absent.
-#
-# `mutmut run` exits 0 even with survivors, so the task parses result rows
-# rather than trusting the exit status.
-#
-# also_copy carries the files the build backend needs inside mutants/. Without
-# README.md the wheel build fails there, no test can run, and every mutant
-# records no outcome while `mutmut run` still exits 0 -- 2640 mutants, none
-# tested. uv.lock and .python-version keep the mutant environment identical to
-# the real one.
+# Mutation testing covers all first-party production on first adoption.
+# mutmut 3.8 uses source_paths and pytest_add_cli_args_test_selection;
+# mutate_only_covered_lines=false keeps mutation generation independent of coverage.
+# The result parser reads rows because mutmut exits 0 even with survivors.
+# also_copy carries the files the build backend and test fixture need in mutants/.
+# README.md is declared as the project readme; install.sh is used by the fixture.
 [tool.mutmut]
-paths_to_mutate = ["src/litectl/"]
-tests_dir = ["tests/"]
+source_paths = ["src/litectl/"]
+pytest_add_cli_args_test_selection = ["tests/"]
+mutate_only_covered_lines = false
 also_copy = ["README.md", "uv.lock", ".python-version", "install.sh"]
 
 [tool.coverage.run]

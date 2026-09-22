@@ -62,7 +62,7 @@ Host runtimes: uv 0.12.15, Python 3.14.7, Node v26.8.2, npm 12.0.2.
 | :--- | :---- | :----------- | :------ | :-------- | :----- | :------------- |
 | coverage | coverage 7.16.1 + `tests/coverage_gate.py` | all first-party production | `uv run poe coverage` | line >=90, branch >=85, enforced separately | `coverage.json` | 9 probes, see below |
 | crap | coverage + complexity | all production functions (first adoption) | `uv run poe crap` | per-function CRAP < 13 | JSON rows | add an uncovered complex function; require a finding |
-| mutation | mutmut 3.3.1 | all first-party production (first adoption) | `uv run poe mutate` | 0 actionable survivors, 0 unresolved dispositions | `mutants/` results | 586 survivors + 890 untested observed; gate FAILS |
+| mutation | mutmut 3.8.0 | all first-party production (first adoption) | `uv run poe mutate` | 0 actionable survivors, 0 unresolved dispositions | `mutants/` results | focused reconcile check: 52 killed, 3 reviewed equivalent; full baseline pending |
 | integrity | audit-harness 1.4.0 | pinned enforcement inputs | `audit-harness verify` | manifest matches | JSON | edit a pinned byte; require failure |
 | escape_scan | audit-harness | staged / push range | `audit-harness escape-scan --staged` | 0 escapes | JSON | stage a suppression; require failure |
 | conformance_artifacts | audit-harness `conform` + JSON Schema | `src/litectl/resources/**/*.yaml`, installed `config.yaml` | `audit-harness conform` | 0 unvalidated declared artifacts | JSON | add an unknown key to a provider file; require rejection |
@@ -129,113 +129,39 @@ Measured on the current candidate:
 | Metric | Measured | Floor | Verdict |
 | :----- | -------: | ----: | :------ |
 | line (statements) | 93.79% | 90% | **PASS** |
-| branch | 85.64% | 85% | **PASS** |
+| branch | 85.90% | 85% | **PASS** |
 
 Startup reconciliation runs before `start` and `serve`, uses the recorded
 provider base and key when process environment variables are absent, and
 prunes stale local fallback aliases without rewriting unchanged config.
 
-## CRAP gate — materialized, currently FAILING
+## CRAP gate — materialized and green
 
-Command: `uv run poe crap`. Runs the harness scorer with `--threshold-prod 13`
-passed explicitly, because the tool's own default is 30 and policy sets
-`crap.exclusive_max: 13`. Needs `coverage.json`, so `poe coverage` runs first,
-and `radon==6.0.1` (dev group) for complexity.
+Command: `uv run poe crap`. It runs the project-owned scorer with the policy
+thresholds (`production_max=13`, `project_avg_max=10`). It reads `coverage.json`
+and uses the pinned Radon runtime.
 
-193 production methods scored; average CRAP 4.15; **6 blockers** over 13:
+Current result: 201 production methods scored; maximum CRAP 12.00; average
+CRAP 3.02; 0 blockers.
 
-| CRAP | Complexity | File coverage | Function |
-| ---: | ---------: | ------------: | :------- |
-| 41.48 | 11 | 36.8% | `workspace/api/resolve.py::ensure_provider` |
-| 37.52 | 10 | 35.0% | `workspace/infrastructure/healthcheck.py::list_models` |
-| 31.89 | 9 | 34.4% | `catalog/api/prompts.py::prompt_for_recovery` |
-| 20.49 | 7 | 35.0% | `workspace/infrastructure/healthcheck.py::_completion_content` |
-| 15.91 | 6 | 35.0% | `workspace/infrastructure/healthcheck.py::choose_model` |
-| 13.48 | 4 | 16.0% | `workspace/api/verify.py::verify` |
+## Mutation gate — focused evidence; full baseline pending
 
-Every blocker is coverage-driven, not complexity-driven: the highest cyclomatic
-complexity is 11 and `verify` is only 4. These clear when the coverage gate
-does; they are the same debt seen per function.
+Command: `uv run poe mutate`. Configuration uses mutmut 3.8.0 with
+`source_paths`, `pytest_add_cli_args_test_selection`, explicit
+`mutate_only_covered_lines = false`, and the required `also_copy` files.
 
-Probed both ways: at `--threshold-prod 50` the gate returns PASS with 0
-blockers, at 13 it returns FAIL with 6. The gate is threshold-bound, not
-permanently red.
+Focused `reconcile_local_models` run: 55 mutants generated, 52 killed, 3
+survived, 0 segfaults, and 0 untested. The three survivors are reviewed
+equivalences, not killed mutants:
 
-The scorer uses **file-level** `percent_covered` as each function's coverage,
-not a per-function fraction. Policy asks for `measured_function_fraction`, so
-this is a conservative approximation recorded as such: a well-covered file can
-mask a poorly covered function inside it. Verdicts are bound-based, and the
-coverage gate retains its own separate measurement requirement.
+- `config_path.exists() or True` is equivalent because `update_config`
+  materializes `config.yaml` before the comparison.
+- `encoding="UTF-8"` is the same codec name as `"utf-8"`.
+- The fallback string `"XXXX"` is unreachable under the same config invariant.
 
-## Mutation gate — RUNNING, currently FAILING
-
-Command: `uv run poe mutate`. Configured in `[tool.mutmut]`:
-`paths_to_mutate = ["src/litectl/"]`, `tests_dir = ["tests/"]`,
-`also_copy = ["README.md", "uv.lock", ".python-version", "install.sh"]`.
-
-2640 mutants across first-party production:
-
-| Outcome | Count |
-| :------ | ----: |
-| killed | 1160 |
-| survived | **586** |
-| no tests | **890** |
-| timeout | 4 |
-
-FAIL under `mutation.actionable_survivors_max: 0`. 586 survivors and 890
-untested mutants are the finding; no exclusion is claimed and none is needed.
-
-Survivors concentrate in `catalog.infrastructure` (206), `workspace.infrastructure`
-(113) and `app` (111). Untested mutants concentrate in
-`workspace.infrastructure` (287), `workspace.api` (160) and `catalog` (151) --
-the same install and service paths the coverage gate reports at 35-40%.
-
-### Correction: the earlier segfault diagnosis was wrong
-
-An earlier run reported 1750 segfaults and 0 tested mutants, which was recorded
-here as BLOCKED with a claim that `src/litectl/serve.py` re-importing `uvicorn`
-and `watchfiles` in-process crashed the interpreter, and that excluding it via
-`do_not_mutate` would need approval as a scope exclusion.
-
-That diagnosis was incorrect. The cause was `tests/conftest.py::project_root`,
-which walks parents for a directory containing both `pyproject.toml` and
-`install.sh`. `install.sh` was missing from `also_copy`, so the fixture raised
-inside `mutants/` and every test using it failed before running. Adding
-`install.sh` resolved all 1750 segfaults. No native-extension problem exists,
-no exclusion is required, and the approval previously requested was unnecessary.
-
-Two missing-file defects of the same class were found in sequence:
-`README.md` (declared as `readme` in `pyproject.toml`, needed by the build) and
-`install.sh` (needed by a test fixture). Both produced 0 tested mutants while
-`mutmut run` exited 0.
-
-### Superseded run history
-
-Command: `uv run poe mutate`. Configured in `[tool.mutmut]`:
-`paths_to_mutate = ["src/litectl/"]`, `tests_dir = ["tests/"]`,
-`also_copy = ["README.md", "uv.lock", ".python-version"]`.
-
-2640 mutants are generated across first-party production. **None can currently
-be validly tested**, so the gate is BLOCKED under
-`mutation.untested_mutants: fail`, `unresolved_mutation_errors: fail` and
-`zero_mutants_with_eligible_source: unverified`. It is not a pass and must not
-be recorded as one.
-
-Run history, each a distinct defect:
-
-| Run | Result | Cause |
-| :-- | :----- | :---- |
-| 1, `--max-children 4` | 2640 mutants, 0 killed, 0 survived | `mutants/` copy lacked `README.md`, which `pyproject.toml` declares as `readme`; the wheel build failed so no test ran |
-| 2, after `also_copy` | crash mid-run | parallel mutants share pytest's `tmp_path` root and race deleting `pytest-current` |
-| 3, `--max-children 1` | 2640 mutants: 1750 segfault, 890 no tests | `install.sh` missing from `also_copy`; fixture raised before any test ran |
-| 4, after `install.sh` | 1160 killed, 586 survived, 890 no tests, 4 timeout | gate operational; survivors are the real finding |
-
-`mutmut run` exits 0 in every one of these cases, including when nothing was
-tested. The exit status is not the verdict; result rows are, and the task must
-parse them.
-
-Run serially. With `--max-children 4`, parallel mutants share pytest's
-`tmp_path` root and race deleting `pytest-current`, which crashes the run.
+Full current first-adoption run: 3,050 mutants; 2,023 killed, 853 survived,
+169 had no tests, and 5 timed out. The mutation gate therefore remains FAIL
+under the zero-survivor policy; focused evidence does not replace this gate.
 
 ## Verified architecture properties
 
