@@ -5,31 +5,31 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from litectl.modules.catalog.api.discover import review
-from litectl.modules.catalog.api.prompts import prompt_for_recovery
-from litectl.modules.catalog.application.ports import (
+from .api.discover import review
+from .api.prompts import prompt_for_recovery
+from .application.ports import (
     ProbeResult,
     Unreachable,
 )
-from litectl.modules.catalog.domain.aliases import (
+from .domain.aliases import (
     Discovery,
     UnavailableDefaultError,
 )
-from litectl.modules.catalog.domain.models import ProviderSpec
-from litectl.modules.catalog.infrastructure.config import PROVIDER_SPECS, AppConfig
-from litectl.modules.catalog.infrastructure.config_reader import (
+from .domain.models import ProviderSpec
+from .infrastructure.config import PROVIDER_SPECS, AppConfig
+from .infrastructure.config_reader import (
     read_provider_aliases,
     validate_config_text,
     validate_yaml_text,
 )
-from litectl.modules.catalog.infrastructure.config_yaml import (
+from .infrastructure.config_yaml import (
     ConfigUpdate,
     update_config,
 )
-from litectl.modules.catalog.infrastructure.openai_compat import fetch_models
-from litectl.modules.catalog.infrastructure.schema import build_config_schema
-from litectl.modules.catalog.infrastructure.storage import FileStorageAdapter
-from litectl.modules.catalog.pipeline import (
+from .infrastructure.openai_compat import fetch_models
+from .infrastructure.schema import build_config_schema
+from .infrastructure.storage import FileStorageAdapter
+from .pipeline import (
     LOCAL_PROVIDER,
     DiscoverFn,
     Registry,

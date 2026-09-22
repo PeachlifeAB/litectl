@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import shutil
 
-from litectl.modules.workspace.infrastructure.service import (
-    ServiceContext,
-    remove_service,
-)
+from litectl.modules.workspace.index import ServiceContext, remove_service
 
 
 def main(context: ServiceContext, assume_yes: bool = False) -> None:

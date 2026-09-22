@@ -20,7 +20,7 @@ def test_install_never_prints_resolved_secrets(
         cerebras_base="https://api.cerebras.ai/v1",
     )
     monkeypatch.setattr(install, "resolve", lambda *_args: settings)
-    monkeypatch.setattr("litectl.app.install.catalog.main", lambda *_args: 0)
+    monkeypatch.setattr(install, "catalog_main", lambda *_args: 0)
     monkeypatch.setattr(install, "initialize", lambda _context: False)
 
     result = install.run(

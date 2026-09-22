@@ -18,12 +18,12 @@ import uvicorn
 from ruamel.yaml.error import YAMLError
 from watchfiles import Change, awatch
 
-from litectl.modules.catalog.infrastructure.config_reader import (
+from litectl.modules.catalog.index import (
+    build_config_schema,
     read_environment_variables,
     validate_config_text,
     validate_yaml_text,
 )
-from litectl.modules.catalog.infrastructure.schema import build_config_schema
 
 DEFAULT_PORT = 4000
 DEFAULT_SHUTDOWN_GRACE_SECONDS = 10.0

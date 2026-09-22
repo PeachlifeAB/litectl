@@ -9,15 +9,15 @@ from importlib.resources import files
 from pathlib import Path
 
 from litectl.app.paths import config_dir, state_dir
-from litectl.modules.catalog import cli as catalog
-from litectl.modules.workspace.api.initialize import initialize
-from litectl.modules.workspace.api.resolve import resolve
-from litectl.modules.workspace.api.verify import verify
-from litectl.modules.workspace.domain.settings import Settings
-from litectl.modules.workspace.infrastructure.filesystem import install
-from litectl.modules.workspace.infrastructure.service import (
+from litectl.modules.catalog.index import main as catalog_main
+from litectl.modules.workspace.index import (
     ServiceContext,
+    Settings,
+    initialize,
+    install,
+    resolve,
     unsupported_message,
+    verify,
 )
 
 RESOURCE_PACKAGE = "litectl.resources"
@@ -61,7 +61,7 @@ def run(
         print(f"  = {path} (kept)")
 
     print(f"\nCreated/Updated {report.total} files in {base_dir}.")
-    catalog.main(base_dir, ["all", "--yes"])
+    catalog_main(base_dir, ["all", "--yes"])
     if initialize(service_context(base_dir, runtime_state_dir, home_dir)):
         verify(runtime_state_dir, settings.master_key, settings.port)
     else:

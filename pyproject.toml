@@ -120,7 +120,7 @@ containers = ["litectl.modules.*"]
 # which is the profile's rule, and not adapter-to-adapter calls, which it allows.
 layers = ["(api) : (infrastructure)", "(application)", "domain"]
 exhaustive = true
-exhaustive_ignores = ["module", "cli", "pipeline", "list_models"]
+exhaustive_ignores = ["index", "module", "cli", "pipeline", "list_models"]
 
 [[tool.importlinter.contracts]]
 id = "bounded-contexts-independent"
@@ -168,14 +168,6 @@ forbidden_modules = [
 ]
 
 # Global composition uses public module roots.
-#
-# This contract FAILS today and is selected anyway: policy forbids disabling or
-# narrowing a required gate to match current code
-# (`disabled_required_gate: fail`, `scope_reduction_to_match_checker: forbidden`).
-# The failure is the finding, recorded in tests/TESTING.md: neither module
-# declares an index.py/module.py public root, and src/app plus src/serve.py
-# import module internals directly. Resolving it means adding those roots and
-# rewriting the imports -- a product change that needs approval.
 [[tool.importlinter.contracts]]
 id = "app-uses-public-roots"
 name = "Global composition uses public module roots"

@@ -11,12 +11,18 @@ from pathlib import Path
 from litectl.app import install as installer
 from litectl.app import teardown
 from litectl.app.paths import config_dir, state_dir
-from litectl.modules.catalog import cli as catalog
-from litectl.modules.catalog import list_models
-from litectl.modules.catalog.cli import PROVIDER_SPECS as CATALOG_PROVIDER_SPECS
-from litectl.modules.workspace.api.resolve import read_settings
-from litectl.modules.workspace.infrastructure.service import (
+from litectl.modules.catalog.index import (
+    PROVIDER_SPECS as CATALOG_PROVIDER_SPECS,
+)
+from litectl.modules.catalog.index import (
+    list_models_main,
+)
+from litectl.modules.catalog.index import (
+    main as catalog_main,
+)
+from litectl.modules.workspace.index import (
     ServiceContext,
+    read_settings,
     service_running,
     start_service,
     stop_service,
@@ -91,14 +97,14 @@ def _install(args: argparse.Namespace, context: RuntimeContext) -> int:
 
 
 def _list(_args: argparse.Namespace, context: RuntimeContext) -> int:
-    list_models.main(context.base_dir)
+    list_models_main(context.base_dir)
     return 0
 
 
 def _update(args: argparse.Namespace, context: RuntimeContext) -> int:
     installer.apply_environment(read_settings(context.base_dir, context.home_dir))
     update_args = [args.provider, *(["--yes"] if args.yes else [])]
-    return catalog.main(context.base_dir, update_args)
+    return catalog_main(context.base_dir, update_args)
 
 
 def _serve(args: argparse.Namespace, context: RuntimeContext) -> int:

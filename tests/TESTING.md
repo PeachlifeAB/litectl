@@ -54,6 +54,7 @@ Host runtimes: uv 0.12.15, Python 3.14.7, Node v26.8.2, npm 12.0.2.
 | static (types) | mypy 2.3.1 strict | `src`, `tests` | `uv run poe typecheck` | 0 errors | stdout | assign `str` to an `int`; require non-zero exit |
 | tests | pytest 9.0 | `tests/` | `uv run poe test` | 0 failures, non-zero collection | stdout | break one assertion; require non-zero exit |
 | repository_scan | qlty (bandit, trufflehog, ripgrep) | repository | `uv run poe quality` | 0 unresolved actionable | stdout | add a synthetic secret; require a finding |
+| architecture | import-linter 2.15 (isolated tool) | `litectl` package graph | `uv run poe arch` | 0 violations | stdout | add a scratch internal import; require a finding |
 
 ### Required, not yet enforced
 
@@ -62,7 +63,6 @@ Host runtimes: uv 0.12.15, Python 3.14.7, Node v26.8.2, npm 12.0.2.
 | coverage | coverage 7.16.1 + `tests/coverage_gate.py` | all first-party production | `uv run poe coverage` | line >=90, branch >=85, enforced separately | `coverage.json` | 9 probes, see below |
 | crap | coverage + complexity | all production functions (first adoption) | `uv run poe crap` | per-function CRAP < 13 | JSON rows | add an uncovered complex function; require a finding |
 | mutation | mutmut 3.3.1 | all first-party production (first adoption) | `uv run poe mutate` | 0 actionable survivors, 0 unresolved dispositions | `mutants/` results | 586 survivors + 890 untested observed; gate FAILS |
-| architecture | import-linter 2.15 (isolated tool) | `litectl` package graph | `uv run poe arch` | 0 violations | stdout | four probes below, each verified |
 | integrity | audit-harness 1.4.0 | pinned enforcement inputs | `audit-harness verify` | manifest matches | JSON | edit a pinned byte; require failure |
 | escape_scan | audit-harness | staged / push range | `audit-harness escape-scan --staged` | 0 escapes | JSON | stage a suppression; require failure |
 | conformance_artifacts | audit-harness `conform` + JSON Schema | `src/litectl/resources/**/*.yaml`, installed `config.yaml` | `audit-harness conform` | 0 unvalidated declared artifacts | JSON | add an unknown key to a provider file; require rejection |
@@ -90,40 +90,22 @@ Recorded during inventory; each blocks verified closure until resolved.
    sites carry inline `# nosec`, so `poe quality` reports no issues, but the
    rules advertise coverage they do not provide.
 
-2. **`src/app` imports module internals.** `src/litectl/app/` and
-   `src/litectl/serve.py` import `catalog.infrastructure.config`,
-   `catalog.infrastructure.config_reader`, `catalog.infrastructure.schema`,
-   `workspace.api.{initialize,resolve,verify}`, `workspace.domain.settings`,
-   `workspace.infrastructure.filesystem` and
-   `workspace.infrastructure.service`. The modulithic profile requires global
-   composition to use public module roots, and neither module declares an
-   `index.py` or `module.py`. Encoded as a failing architecture rule; the
-   refactor that resolves it is a product change requiring approval.
 
-3. **`src/litectl/modules/workspace/` has no `__init__.py`.** `catalog` has one.
-   Implicit namespace package affects coverage `include_unimported_files` and
-   import-linter root resolution.
-
-4. **`duplication` runs advisory.** `.qlty/qlty.toml` sets `[smells] mode = "comment"`.
+2. **`duplication` runs advisory.** `.qlty/qlty.toml` sets `[smells] mode = "comment"`.
    Policy `execution.advisory_required_gate: fail` requires blocking mode once promoted.
 
-5. **`vulture` exits zero with no output.** Policy `execution.unexpected_empty_scope: fail`
+3. **`vulture` exits zero with no output.** Policy `execution.unexpected_empty_scope: fail`
    requires a negative probe proving the check can fail.
 
-6. **No CI.** `.github/` is absent, so the `pre_push` and `ci` cadence rows have
+4. **No CI.** `.github/` is absent, so the `pre_push` and `ci` cadence rows have
    no execution path. Pre-commit hooks exist in `.pre-commit-config.yaml`
    (`commit-check` on commit, `validate` on push).
 
 ## Architecture gate — materialized and proven
 
-Contracts live in `[tool.importlinter]` in `pyproject.toml`. Command:
-`uv run poe arch`, wired into `poe validate` (which aborts on its failure:
-`Sequence aborted after failed subtask 'arch'`, exit 1).
-
-import-linter runs as an isolated `uv tool`, not from the dev group: releases
-from 2.7 up require `rich>=14.2.0` while `litellm[proxy]` pins `rich==13.7.1`.
-The task sets `PYTHONPATH=src`. Invoking it through a plain `uv run` finds no
-executable and the gate would silently vanish.
+Contracts live in `[tool.importlinter]` in `pyproject.toml`. `uv run poe arch` is wired
+into `poe validate` and now exits 0 on the current 87-file, 213-dependency graph.
+import-linter runs as an isolated `uv tool` because LiteLLM pins an older `rich`.
 
 | Contract | Status | Negative probe | Probe result |
 | :------- | :----- | :------------- | :----------- |
@@ -131,32 +113,11 @@ executable and the gate would silently vanish.
 | `bounded-contexts-independent` | KEPT | `workspace/domain/_probe.py` imports `catalog.domain.seed` | BROKEN, only this contract |
 | `modules-not-app` | KEPT | `catalog/domain/_probe.py` imports `litectl.app.paths` | BROKEN, only this contract |
 | `pure-domain` | KEPT | `catalog/domain/_probe.py` imports `subprocess` | BROKEN, only this contract |
-| `app-uses-public-roots` | **BROKEN** | subject is the live violation | see finding 2 |
+| `app-uses-public-roots` | KEPT | scratch `app` import of module infrastructure | BROKEN, only this contract |
 
-Green -> each named defect rejected -> restored green, verified 2026-09-17 on
-85 files and 204 dependencies.
-
-Construction notes, each established by probe rather than assumption:
-
-- Layer names are wrapped in parentheses to mark them optional. A layers
-  contract errors out when any named layer is absent from a container, and
-  `workspace` has no `application/` layer. Optional layers still enforce
-  direction for the layers that exist.
-- `api` and `infrastructure` are one layer (`:`), not independent peers (`|`).
-  Both are outer adapters and the profile permits them to collaborate;
-  `api/resolve.py` drives `infrastructure/probe.py` by design.
-- `modules-not-app` sets `allow_indirect_imports = true`. `litectl/__init__.py`
-  imports `app.cli` to expose `main()`, so every module has an indirect path
-  back to `app`. That chain is the package root re-exporting an entry point.
-- `pure-domain` omits `urllib`: `domain/urls.py` imports `urllib.parse`, which
-  is pure string parsing and belongs in the domain. import-linter rejects
-  subpackages of external packages, so the I/O submodules are banned by ruff
-  `TID251` instead. The two checks are complementary.
-
-`app-uses-public-roots` is selected despite failing. Policy forbids disabling or
-narrowing a required gate to match current code (`disabled_required_gate: fail`,
-`scope_reduction_to_match_checker: forbidden`), so the failure is reported as a
-finding rather than silenced.
+The public-root refactor added `catalog/index.py`, `workspace/index.py`, and
+`workspace/__init__.py`; global composition now imports those roots only. The package
+entrypoint lazy-loads `app.cli`, preventing an indirect bounded-context cycle.
 
 ## Coverage gate — materialized, currently FAILING
 
