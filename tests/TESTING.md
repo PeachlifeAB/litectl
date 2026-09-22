@@ -144,7 +144,7 @@ and uses the pinned Radon runtime.
 Current result: 201 production methods scored; maximum CRAP 12.00; average
 CRAP 3.02; 0 blockers.
 
-## Mutation gate — focused evidence; full baseline pending
+## Mutation gate — focused evidence; full baseline failing
 
 Command: `uv run poe mutate`. Configuration uses mutmut 3.8.0 with
 `source_paths`, `pytest_add_cli_args_test_selection`, explicit
