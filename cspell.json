@@ -71,6 +71,10 @@
     "PYTHONPATH",
     "subpackages",
     "conftest",
-    "behaviour"
+    "behaviour",
+    "asyncio",
+    "aclose",
+    "monkeypatch",
+    "unapply"
   ]
 }

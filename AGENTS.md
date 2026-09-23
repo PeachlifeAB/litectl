@@ -47,6 +47,49 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
+## Mutation Testing & Asyncio Gotchas (mutmut 3.8)
+
+Hints from hard-won debugging, not rules. `qa-policy` covers the gate discipline
+(scope, closure re-run, survivor and equivalence recording); these are the
+tool-specific and asyncio traps it leaves out.
+
+**Fast single-mutant iteration.** `mutmut run <name>` regenerates every mutant
+(cheap, in-process) but *tests* a single named mutant — that per-mutant
+subprocess run is the slow part. Fix a mutant, retest it with
+`mutmut run <name>`, and repeat. Save the full `mutmut run` (no names) for a
+*batch* or at closure, not after each single fix.
+
+**`mutmut apply` writes into the working tree, and there is no unapply.** It reads
+the original from `src/...` and writes the mutant back onto that same path. Check
+`git status` before re-running: a leftover applied mutant makes the next
+`mutmut run` generate mutants from already-mutated source. Restore with
+`git checkout -- <file>`.
+
+**Mutant indices are positional.** A key like `..._x_supervise__mutmut_3` is a
+source-order position, so adding or removing a mutation-skip pragma line shifts
+every later index in that function. After any source edit, re-identify a mutant
+by its diff (`mutmut show <name>`), not by the number you remembered.
+
+**Read the verdict from `mutants/<path>.meta`.** Its `exit_code_by_key` maps to
+`0`=survived, `1`/`3`=killed, `5`/`33`=no tests, `-24`/`24`/`152`/`36`/`255`=
+timeout, `-11`/`-9`=segfault, `None`=not checked, else suspicious. A **timeout**
+on a supervise/loop test means the code *hung* (an `await` that never
+resumes), not that an assertion failed — reproduce with `mutmut apply <name>` +
+the focused test before trusting a kill.
+
+**Asyncio loop tests (`supervise`).** The loop is
+`asyncio.wait((change_task, child.wait_task, stop_task), return_when=FIRST_COMPLETED)`:
+
+- `return_when` is load-bearing — a mutant that drops it defaults to
+  `ALL_COMPLETED` and the loop hangs. If you monkeypatch `asyncio.wait`, accept
+  and honor `return_when`.
+- `asyncio.wait` returns without blocking if a passed task is already done (it lands in
+  `done`); a fake `wait` must return the right `done` set per call, or the
+  `if stop_task in done` / `if child.wait_task in done` checks spin or miss.
+- The loop exits when `stop_task` or `child.wait_task` completes, so drive one
+  of those in the test. A watch generator that yields once then blocks will hang
+  the loop — bound the call with `asyncio.wait_for` and `aclose()` the generator.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:46cd31e7 -->
 ## Beads Issue Tracker
 
