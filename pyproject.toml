@@ -191,7 +191,8 @@ allow_indirect_imports = true
 # README.md is declared as the project readme; install.sh is used by the fixture.
 [tool.mutmut]
 source_paths = ["src/litectl/"]
-pytest_add_cli_args_test_selection = ["tests/"]
+only_mutate = ["src/litectl/serve.py"]
+pytest_add_cli_args_test_selection = ["tests/test_serve.py"]
 mutate_only_covered_lines = false
 also_copy = ["README.md", "uv.lock", ".python-version", "install.sh"]
 

@@ -268,6 +268,7 @@ async def supervise(
                 return child.wait_task.result()
             await _reload_if_needed(config_dir, child)
             change_task = _next_changes(changes)
+            await asyncio.sleep(0)  # yield so wait_for timers fire if the loop keeps spinning
     finally:
         for task in (change_task, stop_task):
             task.cancel()

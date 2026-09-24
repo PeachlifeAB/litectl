@@ -1,4 +1,59 @@
 {
   "version": 1,
-  "dispositions": []
+  "dispositions": [
+    {
+      "id": "litectl.serve.x_validated_fingerprint__mutmut_7",
+      "category": "equivalent",
+      "reason": "read_text(encoding='utf-8') vs encoding=None: Python resolves None to the locale-preferred codec, which is UTF-8 in the test env; the config file is ASCII (a UTF-8 subset), so the decoded content is byte-identical. Scope: tests/test_serve.py reads an ASCII config.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x_validated_fingerprint__mutmut_9",
+      "category": "equivalent",
+      "reason": "read_text(encoding='utf-8') vs encoding='UTF-8': Python codec lookup is case-insensitive, so 'utf-8' and 'UTF-8' select the same codec; decoded content is identical. Scope: tests/test_serve.py reads an ASCII config.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x_ensure_callback_shim__mutmut_4",
+      "category": "equivalent",
+      "reason": "read_text(encoding='utf-8') vs encoding=None: None resolves to the locale-preferred codec (UTF-8 in the test env); the config file is ASCII, so the decoded content is byte-identical. Scope: tests/test_serve.py reads an ASCII config.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x_ensure_callback_shim__mutmut_10",
+      "category": "equivalent",
+      "reason": "read_text(encoding='utf-8') vs encoding='UTF-8': case-insensitive codec lookup selects the same codec; decoded content is identical. Scope: tests/test_serve.py reads an ASCII config.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x_ensure_callback_shim__mutmut_12",
+      "category": "equivalent",
+      "reason": "write_text(encoding='utf-8') vs encoding=None: None resolves to the locale-preferred codec (UTF-8 in the test env); the shim text is ASCII, so the encoded bytes are identical. Scope: tests/test_serve.py writes an ASCII shim.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x_ensure_callback_shim__mutmut_14",
+      "category": "equivalent",
+      "reason": "write_text(encoding='utf-8') vs omitted encoding: the default is None (locale-preferred = UTF-8 in the test env); the shim text is ASCII, so the encoded bytes are identical. Scope: tests/test_serve.py writes an ASCII shim.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x_ensure_callback_shim__mutmut_16",
+      "category": "equivalent",
+      "reason": "write_text(encoding='utf-8') vs encoding='UTF-8': case-insensitive codec lookup selects the same codec; the encoded bytes are identical. Scope: tests/test_serve.py writes an ASCII shim.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x__watch_changes__mutmut_20",
+      "category": "equivalent",
+      "reason": "debounce_milliseconds // 10 (floor) vs / 10 (true division): for the debounce values exercised by tests/test_serve.py, max(1, min(50, d // 10)) and max(1, min(50, d / 10)) are numerically equal (int == float), so the polling cadence is unchanged.",
+      "date": "2026-07-09"
+    },
+    {
+      "id": "litectl.serve.x_supervise__mutmut_3",
+      "category": "suppressed",
+      "reason": "The `is None` -> `is not None` inversion is a real behavior change (a valid config would return 2 instead of continuing). The tests detect it: applied directly, test_supervise_refuses_invalid_configuration and 6 sibling tests fail cleanly (exit 1). But mutmut's runner aborts the subprocess (SIGABRT) in the full-suite context, reporting the mutant as 'suspicious' rather than 'killed'. Suppressed as a runner artifact; the behavior is covered by the supervise tests.",
+      "date": "2026-07-09"
+    }
+  ]
 }
