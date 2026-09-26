@@ -26,6 +26,32 @@ from litectl.modules.catalog.index import (
     validate_yaml_text,
 )
 
+__all__ = [
+    "CALLBACK_SHIM_NAME",
+    "CONFIG_FILE_NAME",
+    "DEFAULT_DEBOUNCE_MILLISECONDS",
+    "DEFAULT_PORT",
+    "DEFAULT_SHUTDOWN_GRACE_SECONDS",
+    "HOST",
+    "ChildState",
+    "SignalGroup",
+    # Re-exported stdlib modules the test inspects via serve.<name>.
+    "asyncio",
+    "ensure_callback_shim",
+    "is_relevant_config_path",
+    "main",
+    "os",
+    "relevant_change_filter",
+    "requires_reload",
+    "run_proxy",
+    "signal_process_group",
+    "start_child",
+    "supervise",
+    "sys",
+    "terminate_child",
+    "validated_fingerprint",
+]
+
 DEFAULT_PORT = 4000
 DEFAULT_SHUTDOWN_GRACE_SECONDS = 10.0
 DEFAULT_DEBOUNCE_MILLISECONDS = 500
@@ -238,7 +264,7 @@ def _install_stop_handlers(stop_event: asyncio.Event) -> None:
         loop.add_signal_handler(handled_signal, stop_event.set)
 
 
-async def supervise(
+async def supervise(  # noqa: PLR0915
     config_dir: Path,
     port: int,
     grace_period_seconds: float,
@@ -268,7 +294,7 @@ async def supervise(
                 return child.wait_task.result()
             await _reload_if_needed(config_dir, child)
             change_task = _next_changes(changes)
-            await asyncio.sleep(0)  # yield so wait_for timers fire if the loop keeps spinning
+            await asyncio.sleep(0)  # yield so wait_for timers fire
     finally:
         for task in (change_task, stop_task):
             task.cancel()

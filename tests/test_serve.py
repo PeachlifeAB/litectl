@@ -4,7 +4,7 @@ import asyncio
 import os
 import signal
 import sys
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable, Iterable
 from pathlib import Path
 from typing import cast
 
@@ -475,7 +475,7 @@ def test_child_state_start_captures_launched_process(
     assert launched == [(tmp_path, 4100)]
     assert state.config_dir == tmp_path
     assert state.port == 4100
-    assert state.grace_period_seconds == 2.5
+    assert state.grace_period_seconds == pytest.approx(2.5)
     assert state.fingerprint == "fingerprint"
     assert state.process.pid == 123
 
@@ -557,7 +557,7 @@ def test_child_state_close_stops_process(
 def test_install_stop_handlers_registers_interrupt_and_terminate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    registered: list[tuple[signal.Signals, object]] = []
+    registered: list[tuple[signal.Signals, Callable[[], None]]] = []
     monkeypatch.setattr(serve.sys, "platform", "linux")
     monkeypatch.setattr(
         serve.asyncio,
@@ -597,10 +597,14 @@ def test_install_stop_handlers_is_noop_on_windows(
 
 
 class _RecordingLoop:
-    def __init__(self, recorder: Callable[[signal.Signals, object], None]) -> None:
+    def __init__(
+        self, recorder: Callable[[signal.Signals, Callable[[], None]], None]
+    ) -> None:
         self._recorder = recorder
 
-    def add_signal_handler(self, handled: signal.Signals, callback: object) -> None:
+    def add_signal_handler(
+        self, handled: signal.Signals, callback: Callable[[], None]
+    ) -> None:
         self._recorder(handled, callback)
 
 
@@ -608,8 +612,13 @@ def test_main_resolves_port_from_environment(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ports: list[int] = []
+
+    def _record(_dir: Path, port: int) -> int:
+        ports.append(port)
+        return 0
+
     monkeypatch.setenv("LITELLM_PORT", "4321")
-    monkeypatch.setattr(serve, "run_proxy", lambda _dir, port: ports.append(port) or 0)
+    monkeypatch.setattr(serve, "run_proxy", _record)
     monkeypatch.setattr(serve, "ensure_callback_shim", lambda _dir: None)
 
     assert serve.main(tmp_path) == 0
@@ -621,8 +630,13 @@ def test_main_defaults_port_when_environment_unset(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ports: list[int] = []
+
+    def _record(_dir: Path, port: int) -> int:
+        ports.append(port)
+        return 0
+
     monkeypatch.delenv("LITELLM_PORT", raising=False)
-    monkeypatch.setattr(serve, "run_proxy", lambda _dir, port: ports.append(port) or 0)
+    monkeypatch.setattr(serve, "run_proxy", _record)
     monkeypatch.setattr(serve, "ensure_callback_shim", lambda _dir: None)
 
     assert serve.main(tmp_path) == 0
@@ -664,7 +678,7 @@ def test_supervise_returns_child_exit_code(
 
     class ExitingChild(FakeSupervisedChild):
         fingerprint = "fingerprint"
-        wait_task = None  # replaced per-run below
+        # replaced per-run by the test's fake_start
 
     monkeypatch.setattr(serve, "validated_fingerprint", lambda _path: "fingerprint")
     monkeypatch.setattr(serve, "_install_stop_handlers", lambda _event: None)
@@ -810,7 +824,9 @@ def test_terminate_child_uses_the_grace_period(
     timeouts: list[float | None] = []
     real_wait_for = asyncio.wait_for
 
-    async def recording_wait_for(awaitable: object, *, timeout: float | None) -> object:
+    async def recording_wait_for(
+        awaitable: Awaitable[object], *, timeout: float | None
+    ) -> object:
         timeouts.append(timeout)
         return await real_wait_for(awaitable, timeout=timeout)
 
@@ -976,8 +992,8 @@ def test_supervise_waits_for_first_completed_task(
     monkeypatch.setattr(serve, "_watch_changes", lambda *_args: _empty_changes())
 
     async def recording_wait(
-        futures: object, *, return_when: object
-    ) -> tuple[set[object], set[object]]:
+        futures: Iterable[asyncio.Future[object]], *, return_when: str
+    ) -> tuple[set[asyncio.Future[object]], set[asyncio.Future[object]]]:
         return_whens.append(return_when)
         return await real_wait(futures, return_when=return_when)
 
