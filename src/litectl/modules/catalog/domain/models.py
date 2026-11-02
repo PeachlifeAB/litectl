@@ -10,23 +10,27 @@ SPEED_MAX_BILLIONS = 9.0
 PARAMETER_BILLIONS_PATTERN = re.compile(
     r"(?<![\d.])(\d+(?:\.\d+)?)b(?=$|[-_.])", re.IGNORECASE
 )
-EXCLUDED_SUBSTRINGS = (
-    "-tts",
-    "tts",
-    "whisper",
-    "asr",
+CHAT_KIND = "chat"
+EMBEDDING_KIND = "embedding"
+OTHER_KIND = "other"
+EMBEDDING_SUBSTRINGS = (
     "embed",
-    "embedding",
-    "rerank",
-    "reranker",
-    "parakeet",
-    "fish-audio",
-    "markitdown",
     "bge-",
     "nomic",
     "gte-",
     "e5-",
     "minilm",
+)
+OTHER_SUBSTRINGS = (
+    "-tts",
+    "tts",
+    "whisper",
+    "asr",
+    "rerank",
+    "reranker",
+    "parakeet",
+    "fish-audio",
+    "markitdown",
     "sam3",
     "sam2",
     "segment-anything",
@@ -41,9 +45,20 @@ class ModelDescriptor:
     raw_id: str
     max_model_len: int | None = None
 
-    def is_chat_model(self) -> bool:
+    def kind(self) -> str:
         lower = self.raw_id.lower()
-        return not any(pattern in lower for pattern in EXCLUDED_SUBSTRINGS)
+        if any(pattern in lower for pattern in EMBEDDING_SUBSTRINGS):
+            return EMBEDDING_KIND
+        if any(pattern in lower for pattern in OTHER_SUBSTRINGS):
+            return OTHER_KIND
+        return CHAT_KIND
+
+    def is_chat_model(self) -> bool:
+        return self.kind() == CHAT_KIND
+
+    def litellm_mode(self) -> str | None:
+        """LiteLLM ``model_info.mode`` for kinds it cannot infer from the route."""
+        return EMBEDDING_KIND if self.kind() == EMBEDDING_KIND else None
 
     def parameter_billions(self) -> float | None:
         match = PARAMETER_BILLIONS_PATTERN.search(self.raw_id)

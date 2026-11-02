@@ -19,6 +19,7 @@ def serialize_model_entries(
         model_name: str,
         target_model: str,
         max_input_tokens: int | None = None,
+        mode: str | None = None,
     ) -> None:
         lines.append(f"  - model_name: {model_name}")
         lines.append("    litellm_params:")
@@ -26,16 +27,22 @@ def serialize_model_entries(
         if spec.api_base:
             lines.append(f"      api_base: {spec.api_base}")
         lines.append(f"      api_key: os.environ/{spec.api_key_env_var}")
+        info_lines: list[str] = []
         if max_input_tokens is not None:
+            info_lines.append(f"      max_input_tokens: {max_input_tokens}")
+        if mode is not None:
+            info_lines.append(f"      mode: {mode}")
+        if info_lines:
             lines.append("    model_info:")
-            lines.append(f"      max_input_tokens: {max_input_tokens}")
+            lines.extend(info_lines)
         lines.append("")
 
-    for model in (m for m in models if m.is_chat_model()):
+    for model in models:
         emit(
             model.to_alias(spec.name),
             f"{ROUTE_PREFIX}/{model.raw_id}",
-            model.max_model_len,
+            model.max_model_len if model.is_chat_model() else None,
+            model.litellm_mode(),
         )
 
     emit(f'"{spec.name}/*"', f'"{ROUTE_PREFIX}/*"')

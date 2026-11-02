@@ -87,6 +87,14 @@ def test_alias_sanitization() -> None:
     )
 
 
+def test_model_kind_classifies_without_excluding() -> None:
+    assert ModelDescriptor("sample-chat-model-8b").kind() == "chat"
+    assert ModelDescriptor("bge-m3-mlx-fp16").kind() == "embedding"
+    assert ModelDescriptor("Qwen3-Embedding-0.6B-4bit-DWQ").kind() == "embedding"
+    assert ModelDescriptor("sample-tts-voice-0.5b").kind() == "other"
+    assert ModelDescriptor("sample-asr-whisper-v1").kind() == "other"
+
+
 def test_serialization_output() -> None:
     spec = ProviderSpec("mock", "http://localhost:0/v1", "MOCK_API_KEY")
     yaml_out = serialize_provider_yaml(
@@ -95,13 +103,18 @@ def test_serialization_output() -> None:
             ModelDescriptor("sample-chat-model-8b", max_model_len=120_000),
             ModelDescriptor("unknown-chat-model"),
             ModelDescriptor("sample-tts-voice-0.5b"),
+            ModelDescriptor("bge-m3-mlx-fp16"),
         ],
     )
     entries = {
         entry["model_name"]: entry for entry in pyyaml.safe_load(yaml_out)["model_list"]
     }
 
-    assert "sample-tts-voice-0.5b" not in yaml_out
+    assert entries["mock-sample-tts-voice-0.5b"]["litellm_params"]["model"] == (
+        "openai/sample-tts-voice-0.5b"
+    )
+    assert "model_info" not in entries["mock-sample-tts-voice-0.5b"]
+    assert entries["mock-bge-m3-mlx-fp16"]["model_info"] == {"mode": "embedding"}
     assert entries["mock-sample-chat-model-8b"]["model_info"] == {
         "max_input_tokens": 120_000
     }
