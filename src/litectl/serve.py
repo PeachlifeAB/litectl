@@ -264,7 +264,7 @@ def _install_stop_handlers(stop_event: asyncio.Event) -> None:
         loop.add_signal_handler(handled_signal, stop_event.set)
 
 
-async def supervise(  # noqa: PLR0915
+async def supervise(
     config_dir: Path,
     port: int,
     grace_period_seconds: float,
@@ -316,7 +316,7 @@ def run_proxy(config_dir: Path, port: int) -> int:
     return 0
 
 
-def main(  # noqa: PLR0913 — CLI lifecycle options plus startup hook
+def main(
     config_dir: Path,
     port: int | None = None,
     watch: bool = False,

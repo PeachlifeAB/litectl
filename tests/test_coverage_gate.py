@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
-
 from coverage_gate import EXIT_BREACH, EXIT_UNMEASURED, main
 
 PASSING = {"percent_statements_covered": 95.5, "percent_branches_covered": 88.2}

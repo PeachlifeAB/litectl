@@ -40,10 +40,10 @@ def ensure_user_turn(
 class EnsureUserTurnHandler(CustomLogger):
     async def async_pre_call_hook(
         self,
-        user_api_key_dict: Any,  # noqa: ARG002 — LiteLLM hook signature
-        cache: Any,  # noqa: ARG002
+        user_api_key_dict: Any,
+        cache: Any,
         data: dict[str, Any],
-        call_type: str,  # noqa: ARG002
+        call_type: str,
     ) -> dict[str, Any]:
         ensure_user_turn(data.get("messages"))
         return data

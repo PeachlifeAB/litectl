@@ -54,7 +54,7 @@ def test_serve_watch_options_are_forwarded(
 ) -> None:
     received: list[tuple[Path, int | None, bool, float, int]] = []
 
-    def fake_serve(  # noqa: PLR0913 — mirrors the serve adapter contract
+    def fake_serve(
         base: Path,
         port: int | None,
         watch: bool,
